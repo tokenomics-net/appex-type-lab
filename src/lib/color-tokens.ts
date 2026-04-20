@@ -106,22 +106,26 @@ export const COLOR_TOKENS: ColorToken[] = [
     id: "footer-heading",
     label: "Footer heading",
     // rgba(255,255,255,0.88) -- near-white, slightly dimmer than primary
+    // Social icons (0.72) also consume this token; close enough in value
     baselineHex: "#DCDDE3",
     roles: [
-      "footer tagline (brand col)",
-      "footer column header labels",
-      "footer social icon color base",
+      "footer tagline (brand col) -- rgba(255,255,255,0.88)",
+      "footer column header labels -- rgba(255,255,255,0.88)",
+      "footer social icons base color -- rgba(255,255,255,0.72) (approximate)",
     ],
   },
   {
     id: "footer-legal",
     label: "Footer legal",
     // rgba(255,255,255,0.52) -- mid-dim white
+    // Footer nav links (0.64) and disclaimer (0.40) both consume this token;
+    // disclaimer applies an additional opacity:0.8 on top.
     baselineHex: "#7E8090",
     roles: [
-      "footer copyright line",
-      "footer legal nav links",
-      "footer nav links (.footer-link base color is rgba(255,255,255,0.64) -- close enough to share this token)",
+      "footer copyright line -- rgba(255,255,255,0.52)",
+      "footer legal nav links -- rgba(255,255,255,0.52)",
+      "footer nav links -- rgba(255,255,255,0.64) (approximate; uses this token)",
+      "footer disclaimer -- rgba(255,255,255,0.40) (uses this token + opacity:0.8)",
     ],
   },
 ];
