@@ -97,9 +97,9 @@ export function MobileNavDrawer({ config, isOpen, onClose }: MobileNavDrawerProp
           background: var(--ax-fortress);
           color: var(--ax-capital-yellow);
           font-family: var(--font-display-family);
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
+          font-size: var(--type-btn-primary-size);
+          font-weight: var(--type-btn-primary-weight);
+          letter-spacing: var(--type-btn-primary-letter-spacing);
           text-transform: uppercase;
           text-decoration: none;
           border-radius: 4px;
@@ -113,9 +113,9 @@ export function MobileNavDrawer({ config, isOpen, onClose }: MobileNavDrawerProp
           border: 1px solid var(--ax-node-purple);
           color: var(--ax-node-purple);
           font-family: var(--font-display-family);
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
+          font-size: var(--type-btn-secondary-size);
+          font-weight: var(--type-btn-secondary-weight);
+          letter-spacing: var(--type-btn-secondary-letter-spacing);
           text-transform: uppercase;
           text-decoration: none;
           border-radius: 4px;
