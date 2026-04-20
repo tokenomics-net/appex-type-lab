@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 372.13 447.28" aria-hidden="true">
+  <defs>
+    <linearGradient id="mark-main" x1="57.46" y1="335.45" x2="281.07" y2="111.84" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#faf28b"/>
+      <stop offset=".2" stop-color="#fed607"/>
+      <stop offset=".33" stop-color="#d6a935"/>
+      <stop offset=".5" stop-color="#aa776a"/>
+      <stop offset=".65" stop-color="#874f94"/>
+      <stop offset=".79" stop-color="#6e33b2"/>
+      <stop offset=".91" stop-color="#5f22c4"/>
+      <stop offset="1" stop-color="#5a1ccb"/>
+    </linearGradient>
+    <linearGradient id="mark-ext" x1="342.31" y1="311.79" x2="232.3" y2="135.74" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0a0f1f"/>
+      <stop offset=".11" stop-color="#0e0f28"/>
+      <stop offset=".3" stop-color="#191141"/>
+      <stop offset=".54" stop-color="#2c1469"/>
+      <stop offset=".81" stop-color="#4618a1"/>
+      <stop offset="1" stop-color="#5a1ccb"/>
+    </linearGradient>
+    <linearGradient id="mark-top" x1="169.24" y1="55.91" x2="270.59" y2="55.91" gradientUnits="userSpaceOnUse">
+      <stop offset=".15" stop-color="#a6a6b1"/>
+      <stop offset="1" stop-color="#5a1ccb"/>
+    </linearGradient>
+    <linearGradient id="mark-btm" x1="179.51" y1="453.91" x2="260.42" y2="329.32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fed607"/>
+      <stop offset=".08" stop-color="#c1a117"/>
+      <stop offset=".14" stop-color="#927924"/>
+      <stop offset=".21" stop-color="#6b582f"/>
+      <stop offset=".28" stop-color="#4d3e37"/>
+      <stop offset=".34" stop-color="#382b3d"/>
+      <stop offset=".41" stop-color="#2b2040"/>
+      <stop offset=".46" stop-color="#271d42"/>
+      <stop offset=".52" stop-color="#1f1938"/>
+      <stop offset=".64" stop-color="#13132a"/>
+      <stop offset=".78" stop-color="#0c1021"/>
+      <stop offset="1" stop-color="#0a0f1f"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#mark-main)" d="M68.01,111.82l67.96,111.81-67.98,111.81L0,223.62l68.01-111.8ZM237.24,111.81L169.24,0h0l-67.99,111.81,68,111.82,67.99-111.82ZM100.99,335.43l68.3,111.84,67.95-111.84-67.99-111.8-68.26,111.8ZM270.59,111.81h0l-67.9,111.82,67.15,111.8,68.77-111.8-68.02-111.82Z"/>
+  <polygon fill="url(#mark-ext)" points="304.6 111.81 270.59 111.81 338.61 223.63 269.84 335.44 304.47 335.44 372.13 223.63 304.6 111.81"/>
+  <polygon fill="url(#mark-top)" points="270.59 111.81 201.99 0 169.24 0 237.24 111.81 270.59 111.81"/>
+  <polygon fill="url(#mark-btm)" points="237.24 335.44 169.29 447.28 203.02 447.28 269.84 335.44 237.24 335.44"/>
+</svg>

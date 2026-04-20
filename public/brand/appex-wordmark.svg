@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="216 342 362 76" aria-hidden="true">
+  <defs>
+    <linearGradient id="wm-grad" x1="300.6" y1="483.3" x2="506.25" y2="277.64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset=".5" stop-color="#b9a0cc"/>
+      <stop offset=".55" stop-color="#c3a8ae"/>
+      <stop offset=".67" stop-color="#d7b873"/>
+      <stop offset=".77" stop-color="#e8c544"/>
+      <stop offset=".87" stop-color="#f4ce23"/>
+      <stop offset=".95" stop-color="#fbd30e"/>
+      <stop offset="1" stop-color="#fed607"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#wm-grad)" d="M575.58,414.61h-11.94l-17.32-36.41,15.92-32.6h11.96l-16.12,32.61,17.5,36.4ZM516.85,345.59l16.12,32.61-17.5,36.4h11.94l17.32-36.41-15.92-32.6h-11.96ZM459.17,383.73h32.32v-10.07h-32.32v-18.46h37.08v-10.07h-48.1v69.01h49.05v-10.07h-38.03v-20.35ZM414.52,352.75l8.33,8.33v38.15l-8.37,7.33h-32.51v7.61h-11.02v-61.41h43.57ZM381.96,362.82v34.62h29.86v-34.62h-29.86ZM337.52,352.75l8.33,8.33v38.14l-8.37,7.4h-32.51v7.53h-11.02v-61.41h43.57ZM304.97,362.82v34.62h29.86v-34.62h-29.86ZM268.42,397.43h8.56v9.19h-52.08l-8.37-7.4v-38.14l8.33-8.33h43.57v44.68ZM227.54,362.82v34.62h29.86v-34.62h-29.86Z"/>
+</svg>
