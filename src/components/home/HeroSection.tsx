@@ -196,7 +196,7 @@ export function HeroSection(): React.JSX.Element {
           font-weight: var(--type-hero-headline-weight);
           line-height: var(--type-hero-headline-line-height);
           letter-spacing: var(--type-hero-headline-letter-spacing);
-          color: var(--text-primary);
+          color: var(--color-primary-text);
           margin: 0 0 24px 0;
         }
 
@@ -236,7 +236,7 @@ export function HeroSection(): React.JSX.Element {
           font-weight: var(--type-hero-subhead-weight);
           line-height: var(--type-hero-subhead-line-height);
           letter-spacing: var(--type-hero-subhead-letter-spacing);
-          color: var(--text-secondary);
+          color: var(--color-secondary-text);
           margin: 0 0 12px 0;
           max-width: 520px;
         }
@@ -273,7 +273,7 @@ export function HeroSection(): React.JSX.Element {
           height: 36px;
           border-radius: 50%;
           border: 1px solid rgba(255,255,255,0.15);
-          color: var(--text-secondary);
+          color: var(--color-secondary-text);
           transition: color 250ms ease, border-color 250ms ease, background 250ms ease;
         }
 

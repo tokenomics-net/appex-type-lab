@@ -192,12 +192,12 @@ export function ForStakeholdersSection(): React.JSX.Element {
 
         .stakeholders__tab-btn--inactive {
           background: transparent;
-          color: var(--text-muted);
+          color: var(--color-muted-text);
           border: 1px solid var(--border-hairline);
         }
 
         .stakeholders__tab-btn--inactive:hover {
-          color: var(--text-secondary);
+          color: var(--color-secondary-text);
           border-color: rgba(255,255,255,0.20);
           background: rgba(255,255,255,0.03);
         }
@@ -264,7 +264,7 @@ export function ForStakeholdersSection(): React.JSX.Element {
           font-weight: var(--type-stakeholders-heading-weight);
           line-height: var(--type-stakeholders-heading-line-height);
           letter-spacing: var(--type-stakeholders-heading-letter-spacing);
-          color: var(--text-primary);
+          color: var(--color-primary-text);
           margin-bottom: 16px;
         }
 
@@ -274,7 +274,7 @@ export function ForStakeholdersSection(): React.JSX.Element {
           font-weight: var(--type-body-weight);
           line-height: var(--type-body-line-height);
           letter-spacing: var(--type-body-letter-spacing);
-          color: var(--text-secondary);
+          color: var(--color-secondary-text);
           margin-bottom: 20px;
         }
 
@@ -293,7 +293,7 @@ export function ForStakeholdersSection(): React.JSX.Element {
           font-weight: var(--type-bullet-weight);
           line-height: var(--type-bullet-line-height);
           letter-spacing: var(--type-bullet-letter-spacing);
-          color: var(--text-secondary);
+          color: var(--color-secondary-text);
           display: flex;
           align-items: flex-start;
           gap: 10px;

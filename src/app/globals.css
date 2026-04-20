@@ -134,6 +134,34 @@
   --text-primary:               rgba(255, 255, 255, 0.92);
   --text-secondary:             rgba(185, 160, 204, 0.78);
   --text-muted:                 rgba(185, 160, 204, 0.50);
+
+  /* ================================================================
+     Color tuning tokens -- BASELINE values.
+     The control panel overwrites these at runtime via JS.
+     Baselines are the effective visible color of the ported components,
+     converted to HSL-compatible hex by blending against #0A0F1F.
+     ================================================================ */
+
+  /* primary-text -- hero H1, section headlines, stakeholders heading */
+  --color-primary-text:         #E8EAF0;
+
+  /* secondary-text -- subheads, body paragraphs, bullet items */
+  --color-secondary-text:       #A892BD;
+
+  /* muted-text -- inactive tab labels, tertiary */
+  --color-muted-text:           #6E5E80;
+
+  /* card-title -- Token section card titles (warm cream-white) */
+  --color-card-title:           #DDD9C5;
+
+  /* card-body -- Token section card body/caption */
+  --color-card-body:            #8A7499;
+
+  /* footer-heading -- footer tagline, col headers, social icons */
+  --color-footer-heading:       #DCDDE3;
+
+  /* footer-legal -- footer copyright, legal links, nav links, disclaimer */
+  --color-footer-legal:         #7E8090;
   --surface-raised:             #0F1528;
   --ax-gradient-gold-line:      linear-gradient(90deg, rgba(254,214,7,0.6), rgba(254,214,7,0.2));
   --ax-gradient-purple-line:    linear-gradient(90deg, rgba(90,28,203,0.4), rgba(185,160,204,0.2));

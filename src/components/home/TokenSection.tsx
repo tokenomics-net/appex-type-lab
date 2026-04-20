@@ -137,7 +137,7 @@ export function TokenSection(): React.JSX.Element {
           font-weight: var(--type-section-headline-weight);
           line-height: var(--type-section-headline-line-height);
           letter-spacing: var(--type-section-headline-letter-spacing);
-          color: var(--text-primary);
+          color: var(--color-primary-text);
           margin-bottom: 16px;
         }
 
@@ -147,7 +147,7 @@ export function TokenSection(): React.JSX.Element {
           font-weight: var(--type-section-subhead-weight);
           line-height: var(--type-section-subhead-line-height);
           letter-spacing: var(--type-section-subhead-letter-spacing);
-          color: var(--text-secondary);
+          color: var(--color-secondary-text);
         }
 
         .token-section__token-wrap {
@@ -235,7 +235,7 @@ export function TokenSection(): React.JSX.Element {
           font-weight: var(--type-card-title-weight);
           letter-spacing: var(--type-card-title-letter-spacing);
           line-height: var(--type-card-title-line-height);
-          color: rgba(240,236,216,0.92);
+          color: var(--color-card-title);
           margin-bottom: 6px;
         }
 
@@ -245,7 +245,7 @@ export function TokenSection(): React.JSX.Element {
           font-weight: var(--type-card-body-weight);
           line-height: var(--type-card-body-line-height);
           letter-spacing: var(--type-card-body-letter-spacing);
-          color: rgba(185,160,204,0.65);
+          color: var(--color-card-body);
           margin: 0;
         }
 

@@ -96,7 +96,7 @@ export function SiteFooter() {
                 fontWeight:    "var(--type-footer-tagline-weight)" as unknown as number,
                 letterSpacing: "var(--type-footer-tagline-letter-spacing)",
                 lineHeight:    "var(--type-footer-tagline-line-height)" as unknown as number,
-                color:         "rgba(255, 255, 255, 0.88)",
+                color:         "var(--color-footer-heading)",
                 marginBottom:  "20px",
                 maxWidth:      "240px",
               }}
@@ -118,7 +118,7 @@ export function SiteFooter() {
                     justifyContent: "center",
                     width:          "44px",
                     height:         "44px",
-                    color:          "rgba(255, 255, 255, 0.72)",
+                    color:          "var(--color-footer-heading)",
                     textDecoration: "none",
                     borderRadius:   "8px",
                     transition:     "color 200ms ease-out",
@@ -151,7 +151,7 @@ export function SiteFooter() {
                     letterSpacing: "var(--type-footer-col-header-letter-spacing)",
                     lineHeight:    "var(--type-footer-col-header-line-height)" as unknown as number,
                     textTransform: "uppercase",
-                    color:         "rgba(255, 255, 255, 0.88)",
+                    color:         "var(--color-footer-heading)",
                     marginBottom:  "20px",
                   }}
                 >
@@ -170,7 +170,7 @@ export function SiteFooter() {
                           fontWeight:     "var(--type-footer-link-weight)" as unknown as number,
                           letterSpacing:  "var(--type-footer-link-letter-spacing)",
                           lineHeight:     "var(--type-footer-link-line-height)" as unknown as number,
-                          color:          "rgba(255, 255, 255, 0.64)",
+                          color:          "var(--color-footer-legal)",
                           textDecoration: "none",
                           transition:     "color 200ms ease-out",
                         }}
@@ -217,7 +217,7 @@ export function SiteFooter() {
                 fontWeight:  "var(--type-footer-legal-weight)" as unknown as number,
                 lineHeight:  "var(--type-footer-legal-line-height)" as unknown as number,
                 letterSpacing: "var(--type-footer-legal-letter-spacing)",
-                color:       "rgba(255, 255, 255, 0.52)",
+                color:       "var(--color-footer-legal)",
               }}
             >
               {legal.copyright}
@@ -229,7 +229,8 @@ export function SiteFooter() {
                 fontWeight:   "var(--type-footer-disclaimer-weight)" as unknown as number,
                 lineHeight:   "var(--type-footer-disclaimer-line-height)" as unknown as number,
                 letterSpacing:"var(--type-footer-disclaimer-letter-spacing)",
-                color:        "rgba(255, 255, 255, 0.40)",
+                color:        "var(--color-footer-legal)",
+                opacity:      0.8,
                 maxWidth:     "560px",
               }}
             >
@@ -257,7 +258,7 @@ export function SiteFooter() {
                       fontWeight:     "var(--type-footer-legal-weight)" as unknown as number,
                       lineHeight:     "var(--type-footer-legal-line-height)" as unknown as number,
                       letterSpacing:  "var(--type-footer-legal-letter-spacing)",
-                      color:          "rgba(255, 255, 255, 0.52)",
+                      color:          "var(--color-footer-legal)",
                       textDecoration: "none",
                       transition:     "color 200ms ease-out",
                     }}
