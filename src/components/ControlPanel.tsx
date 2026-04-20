@@ -5,9 +5,9 @@
  * URL hash, clipboard, and document.documentElement.style.setProperty
  * require browser APIs.
  *
- * Renders the left-side control panel. All type changes are applied via
- * CSS custom properties on :root -- the preview updates instantly with
- * no React re-render of the preview iframes.
+ * Renders the left-side control panel. Typography and color changes are
+ * applied via CSS custom properties on :root -- the preview updates
+ * instantly with no React re-render of the preview content.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -21,12 +21,20 @@ import {
   fromHashFragment,
   type FontRoleConfig,
 } from "@/lib/type-roles";
+import {
+  COLOR_TOKENS,
+  buildBaselineColorDeltas,
+  toCssValue,
+  type ColorDeltaMap,
+} from "@/lib/color-tokens";
 
 type PresetName = "Baseline" | "Bump small text" | "Bump all" | "Custom";
 
 const STORAGE_KEY = "appex-type-lab-custom";
 
-function applyToRoot(values: Record<string, FontRoleConfig>) {
+// ---- Apply helpers ----
+
+function applyTypeToRoot(values: Record<string, FontRoleConfig>): void {
   const root = document.documentElement;
   for (const [id, cfg] of Object.entries(values)) {
     root.style.setProperty(`--type-${id}-size`,           cfg.size);
@@ -36,30 +44,65 @@ function applyToRoot(values: Record<string, FontRoleConfig>) {
   }
 }
 
-function loadCustomFromStorage(): Record<string, FontRoleConfig> | null {
+function applyColorToRoot(deltas: ColorDeltaMap): void {
+  const root = document.documentElement;
+  for (const token of COLOR_TOKENS) {
+    const delta = deltas[token.id] ?? { warm: 0, tone: 0 };
+    root.style.setProperty(`--color-${token.id}`, toCssValue(token.baselineHex, delta.warm, delta.tone));
+  }
+}
+
+function applyAllToRoot(
+  typeValues: Record<string, FontRoleConfig>,
+  colorDeltas: ColorDeltaMap
+): void {
+  applyTypeToRoot(typeValues);
+  applyColorToRoot(colorDeltas);
+}
+
+// ---- Storage helpers ----
+
+interface StoredState {
+  type: Record<string, FontRoleConfig>;
+  color: ColorDeltaMap;
+}
+
+function loadFromStorage(): StoredState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as Record<string, FontRoleConfig>;
+    const parsed = JSON.parse(raw) as Partial<StoredState>;
+    // Support old format (no color key)
+    if (parsed.type) {
+      return {
+        type: parsed.type,
+        color: parsed.color ?? buildBaselineColorDeltas(),
+      };
+    }
+    // Very old format: the whole object was FontRoleConfig map
+    return { type: parsed as unknown as Record<string, FontRoleConfig>, color: buildBaselineColorDeltas() };
   } catch {
     return null;
   }
 }
 
-function saveCustomToStorage(values: Record<string, FontRoleConfig>) {
+function saveToStorage(state: StoredState): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch { /* noop */ }
 }
 
 export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
-  const BASELINE  = buildBaseline();
-  const BUMP_SMALL = buildBumpSmall();
-  const BUMP_ALL   = buildBumpAll();
+  const BASELINE        = buildBaseline();
+  const BUMP_SMALL      = buildBumpSmall();
+  const BUMP_ALL        = buildBumpAll();
+  const BASELINE_COLORS = buildBaselineColorDeltas();
 
-  const [preset,  setPreset]  = useState<PresetName>("Baseline");
-  const [values,  setValues]  = useState<Record<string, FontRoleConfig>>(BASELINE);
-  const [copied,  setCopied]  = useState<"css" | "url" | null>(null);
+  const [preset,       setPreset]       = useState<PresetName>("Baseline");
+  const [typeValues,   setTypeValues]   = useState<Record<string, FontRoleConfig>>(BASELINE);
+  const [colorDeltas,  setColorDeltas]  = useState<ColorDeltaMap>(BASELINE_COLORS);
+  const [copied,       setCopied]       = useState<"css" | "url" | null>(null);
+  const [colorOpen,    setColorOpen]    = useState<boolean>(false);
   const initRef = useRef(false);
 
   // On mount: check URL hash first, then localStorage
@@ -71,65 +114,110 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
     if (hash) {
       const parsed = fromHashFragment(hash);
       if (parsed) {
-        setValues(parsed);
+        const colors = parsed.color ?? buildBaselineColorDeltas();
+        setTypeValues(parsed.type);
+        setColorDeltas(colors);
         setPreset("Custom");
-        applyToRoot(parsed);
+        applyAllToRoot(parsed.type, colors);
         return;
       }
     }
-    const stored = loadCustomFromStorage();
+    const stored = loadFromStorage();
     if (stored) {
-      setValues(stored);
+      setTypeValues(stored.type);
+      setColorDeltas(stored.color);
       setPreset("Custom");
-      applyToRoot(stored);
+      applyAllToRoot(stored.type, stored.color);
       return;
     }
-    applyToRoot(BASELINE);
+    applyAllToRoot(BASELINE, BASELINE_COLORS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const switchPreset = useCallback((name: PresetName) => {
     setPreset(name);
-    let next: Record<string, FontRoleConfig>;
-    if (name === "Baseline")       next = { ...BASELINE };
-    else if (name === "Bump small text") next = { ...BUMP_SMALL };
-    else if (name === "Bump all")  next = { ...BUMP_ALL };
-    else {
-      const stored = loadCustomFromStorage();
-      next = stored ?? { ...BASELINE };
+    let nextType: Record<string, FontRoleConfig>;
+    let nextColor: ColorDeltaMap = { ...BASELINE_COLORS };
+
+    if (name === "Baseline") {
+      nextType  = { ...BASELINE };
+      nextColor = { ...BASELINE_COLORS };
+    } else if (name === "Bump small text") {
+      nextType  = { ...BUMP_SMALL };
+      // Color presets unchanged -- Bump presets are font-size only
+    } else if (name === "Bump all") {
+      nextType  = { ...BUMP_ALL };
+    } else {
+      const stored = loadFromStorage();
+      nextType  = stored?.type  ?? { ...BASELINE };
+      nextColor = stored?.color ?? { ...BASELINE_COLORS };
     }
-    setValues(next);
-    applyToRoot(next);
+
+    setTypeValues(nextType);
+    setColorDeltas(nextColor);
+    applyAllToRoot(nextType, nextColor);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ---- Typography update handler ----
   const updateRole = useCallback((roleId: string, field: keyof FontRoleConfig, raw: string | number) => {
-    setValues((prev) => {
+    setTypeValues((prev) => {
       const cur = prev[roleId] ?? BASELINE[roleId];
       const next: FontRoleConfig = { ...cur, [field]: raw };
       const all = { ...prev, [roleId]: next };
-      // Apply immediately to :root
-      document.documentElement.style.setProperty(`--type-${roleId}-${field.replace(/([A-Z])/g, "-$1").toLowerCase()}`, String(raw));
-      // Persist as Custom
+      document.documentElement.style.setProperty(
+        `--type-${roleId}-${field.replace(/([A-Z])/g, "-$1").toLowerCase()}`,
+        String(raw)
+      );
       setPreset("Custom");
-      saveCustomToStorage(all);
+      setColorDeltas((prevColor) => {
+        saveToStorage({ type: all, color: prevColor });
+        return prevColor;
+      });
       return all;
     });
   }, [BASELINE]);
+
+  // ---- Color delta update handler ----
+  const updateColorDelta = useCallback((
+    tokenId: string,
+    axis: "warm" | "tone",
+    value: number
+  ) => {
+    setColorDeltas((prev) => {
+      const cur = prev[tokenId] ?? { warm: 0, tone: 0 };
+      const next = { ...cur, [axis]: value };
+      const all = { ...prev, [tokenId]: next };
+      // Find baseline hex for this token
+      const token = COLOR_TOKENS.find((t) => t.id === tokenId);
+      if (token) {
+        document.documentElement.style.setProperty(
+          `--color-${tokenId}`,
+          toCssValue(token.baselineHex, next.warm, next.tone)
+        );
+      }
+      setPreset("Custom");
+      setTypeValues((prevType) => {
+        saveToStorage({ type: prevType, color: all });
+        return prevType;
+      });
+      return all;
+    });
+  }, []);
 
   const handleReset = useCallback(() => {
     switchPreset("Baseline");
   }, [switchPreset]);
 
   const handleCopyCSS = useCallback(async () => {
-    const css = toCssBlock(values);
+    const css = toCssBlock(typeValues, colorDeltas);
     await navigator.clipboard.writeText(css);
     setCopied("css");
     setTimeout(() => setCopied(null), 2000);
-  }, [values]);
+  }, [typeValues, colorDeltas]);
 
   const handleDownloadJSON = useCallback(() => {
-    const json = JSON.stringify(values, null, 2);
+    const json = JSON.stringify({ type: typeValues, color: colorDeltas }, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -137,16 +225,16 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
     a.download = "appex-type-config.json";
     a.click();
     URL.revokeObjectURL(url);
-  }, [values]);
+  }, [typeValues, colorDeltas]);
 
   const handleShareURL = useCallback(async () => {
-    const frag = toHashFragment(values);
+    const frag = toHashFragment(typeValues, colorDeltas);
     const url = `${window.location.origin}${window.location.pathname}#${frag}`;
     await navigator.clipboard.writeText(url);
     window.history.replaceState(null, "", `#${frag}`);
     setCopied("url");
     setTimeout(() => setCopied(null), 2000);
-  }, [values]);
+  }, [typeValues, colorDeltas]);
 
   return (
     <aside
@@ -254,6 +342,36 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
         .panel-body {
           padding: 8px 0;
           flex: 1;
+        }
+
+        /* ---- Section headers (Typography / Color) ---- */
+        .panel-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 16px 6px;
+          cursor: pointer;
+          user-select: none;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          margin-bottom: 0;
+        }
+        .panel-section-header:hover {
+          background: rgba(255,255,255,0.02);
+        }
+        .panel-section-title {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: rgba(255,255,255,0.45);
+        }
+        .panel-section-chevron {
+          font-size: 9px;
+          color: rgba(255,255,255,0.30);
+          transition: transform 150ms ease;
+        }
+        .panel-section-chevron--open {
+          transform: rotate(180deg);
         }
 
         .panel-role {
@@ -370,6 +488,109 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
           color: #FED607;
         }
 
+        /* ---- Color token rows ---- */
+        .panel-color-token {
+          padding: 10px 16px;
+          border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .panel-color-token:last-child {
+          border-bottom: none;
+        }
+        .panel-color-token__header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        .panel-color-token__swatch {
+          width: 14px;
+          height: 14px;
+          border-radius: 3px;
+          border: 1px solid rgba(255,255,255,0.14);
+          flex-shrink: 0;
+        }
+        .panel-color-token__label {
+          font-size: 11px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.88);
+        }
+
+        /* Step slider: 7 steps from -3 to +3 */
+        .panel-step-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 5px;
+          position: relative;
+        }
+        .panel-step-row__name {
+          width: 52px;
+          flex-shrink: 0;
+          color: rgba(255,255,255,0.45);
+          font-size: 10px;
+        }
+        .panel-step-row__slider-wrap {
+          flex: 1;
+          position: relative;
+        }
+        .panel-step-row__slider {
+          width: 100%;
+          -webkit-appearance: none;
+          height: 3px;
+          border-radius: 2px;
+          background: rgba(255,255,255,0.12);
+          outline: none;
+          cursor: pointer;
+        }
+        .panel-step-row__slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #FED607;
+          cursor: pointer;
+        }
+        .panel-step-row__slider::-moz-range-thumb {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #FED607;
+          cursor: pointer;
+          border: none;
+        }
+        /* Zero tick mark centered on the slider track */
+        .panel-step-row__zero-tick {
+          position: absolute;
+          top: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 1px;
+          height: 5px;
+          background: rgba(255,255,255,0.25);
+          pointer-events: none;
+        }
+        .panel-step-row__zero-label {
+          position: absolute;
+          top: -16px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 8px;
+          color: rgba(255,255,255,0.25);
+          pointer-events: none;
+          white-space: nowrap;
+          font-family: system-ui, sans-serif;
+        }
+        .panel-step-row__value {
+          width: 28px;
+          text-align: right;
+          color: rgba(255,255,255,0.6);
+          font-size: 10px;
+          font-variant-numeric: tabular-nums;
+        }
+        .panel-step-row__value--nonzero {
+          color: #FED607;
+        }
+
         .panel-toggle {
           position: fixed;
           top: 50%;
@@ -439,8 +660,14 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
       </div>
 
       <div className="panel-body">
+
+        {/* ---- Typography section ---- */}
+        <div className="panel-section-header" role="heading" aria-level={2}>
+          <span className="panel-section-title">Typography</span>
+        </div>
+
         {TYPE_ROLES.map((role) => {
-          const cur = values[role.id] ?? role.baseline;
+          const cur = typeValues[role.id] ?? role.baseline;
           const baseSize  = parseFloat(role.baseline.size);
           const curSize   = parseFloat(cur.size);
           const minSize   = Math.round(baseSize * 0.5);
@@ -520,6 +747,84 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
             </div>
           );
         })}
+
+        {/* ---- Color section ---- */}
+        <div
+          className="panel-section-header"
+          role="heading"
+          aria-level={2}
+          onClick={() => setColorOpen((v) => !v)}
+          style={{ cursor: "pointer", marginTop: "8px" }}
+        >
+          <span className="panel-section-title">Color</span>
+          <span className={`panel-section-chevron${colorOpen ? " panel-section-chevron--open" : ""}`}>
+            &#9660;
+          </span>
+        </div>
+
+        {colorOpen && COLOR_TOKENS.map((token) => {
+          const delta = colorDeltas[token.id] ?? { warm: 0, tone: 0 };
+          // Compute the live CSS value to use as swatch background
+          const liveCss = toCssValue(token.baselineHex, delta.warm, delta.tone);
+
+          return (
+            <div key={token.id} className="panel-color-token">
+              <div className="panel-color-token__header">
+                <div
+                  className="panel-color-token__swatch"
+                  style={{ background: liveCss }}
+                  aria-hidden="true"
+                />
+                <span className="panel-color-token__label">{token.label}</span>
+              </div>
+
+              {/* Temperature slider: warm (-3..+3) */}
+              <div className="panel-step-row">
+                <span className="panel-step-row__name">Warm</span>
+                <div className="panel-step-row__slider-wrap">
+                  <span className="panel-step-row__zero-label">0</span>
+                  <span className="panel-step-row__zero-tick" />
+                  <input
+                    type="range"
+                    className="panel-step-row__slider"
+                    min={-3}
+                    max={3}
+                    step={1}
+                    value={delta.warm}
+                    onChange={(e) => updateColorDelta(token.id, "warm", parseInt(e.target.value, 10))}
+                    aria-label={`${token.label} temperature`}
+                  />
+                </div>
+                <span className={`panel-step-row__value${delta.warm !== 0 ? " panel-step-row__value--nonzero" : ""}`}>
+                  {delta.warm > 0 ? `+${delta.warm}` : delta.warm}
+                </span>
+              </div>
+
+              {/* Tone slider: lighter/darker (-3..+3) */}
+              <div className="panel-step-row">
+                <span className="panel-step-row__name">Tone</span>
+                <div className="panel-step-row__slider-wrap">
+                  <span className="panel-step-row__zero-label">0</span>
+                  <span className="panel-step-row__zero-tick" />
+                  <input
+                    type="range"
+                    className="panel-step-row__slider"
+                    min={-3}
+                    max={3}
+                    step={1}
+                    value={delta.tone}
+                    onChange={(e) => updateColorDelta(token.id, "tone", parseInt(e.target.value, 10))}
+                    aria-label={`${token.label} tone`}
+                  />
+                </div>
+                <span className={`panel-step-row__value${delta.tone !== 0 ? " panel-step-row__value--nonzero" : ""}`}>
+                  {delta.tone > 0 ? `+${delta.tone}` : delta.tone}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
       </div>
     </aside>
   );

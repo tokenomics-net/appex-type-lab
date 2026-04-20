@@ -228,30 +228,85 @@ export function buildBumpAll(): Record<string, FontRoleConfig> {
   );
 }
 
-/** Convert a values record into a CSS :root { --type-* } block */
-export function toCssBlock(values: Record<string, FontRoleConfig>): string {
-  const lines = Object.entries(values).flatMap(([id, cfg]) => [
+import { COLOR_TOKENS, toCssValue, type ColorDeltaMap } from "./color-tokens";
+
+/**
+ * Convert a typography values record and optional color delta map into a
+ * CSS :root { ... } block. Pasting this block into globals.css applies both
+ * typography and color tuning to the live site.
+ */
+export function toCssBlock(
+  values: Record<string, FontRoleConfig>,
+  colorDeltas?: ColorDeltaMap
+): string {
+  const typeLines = Object.entries(values).flatMap(([id, cfg]) => [
     `  --type-${id}-size: ${cfg.size};`,
     `  --type-${id}-line-height: ${cfg.lineHeight};`,
     `  --type-${id}-weight: ${cfg.weight};`,
     `  --type-${id}-letter-spacing: ${cfg.letterSpacing};`,
   ]);
-  return `:root {\n${lines.join("\n")}\n}`;
+
+  const colorLines: string[] = [];
+  if (colorDeltas) {
+    for (const token of COLOR_TOKENS) {
+      const delta = colorDeltas[token.id] ?? { warm: 0, tone: 0 };
+      const computed = toCssValue(token.baselineHex, delta.warm, delta.tone);
+      colorLines.push(`  --color-${token.id}: ${computed};`);
+    }
+  }
+
+  const allLines = colorDeltas
+    ? [...typeLines, "", "  /* color tokens */", ...colorLines]
+    : typeLines;
+
+  return `:root {\n${allLines.join("\n")}\n}`;
 }
 
-/** Convert a values record to a URL-safe base64 hash fragment */
-export function toHashFragment(values: Record<string, FontRoleConfig>): string {
-  const json = JSON.stringify(values);
+/** Payload shape stored in URL hash and localStorage */
+interface LabPayload {
+  type: Record<string, FontRoleConfig>;
+  color?: ColorDeltaMap;
+}
+
+/**
+ * Encode both typography values and color deltas into a URL-safe base64
+ * hash fragment.
+ */
+export function toHashFragment(
+  values: Record<string, FontRoleConfig>,
+  colorDeltas?: ColorDeltaMap
+): string {
   if (typeof window === "undefined") return "";
-  return btoa(encodeURIComponent(json));
+  const payload: LabPayload = { type: values };
+  if (colorDeltas) payload.color = colorDeltas;
+  return btoa(encodeURIComponent(JSON.stringify(payload)));
 }
 
-/** Parse a hash fragment back into a values record (returns null on error) */
-export function fromHashFragment(hash: string): Record<string, FontRoleConfig> | null {
+/**
+ * Parse a hash fragment back. Returns { type, color } or null on error.
+ * Handles both the legacy format (plain FontRoleConfig map) and the new
+ * combined payload format.
+ */
+export function fromHashFragment(hash: string): {
+  type: Record<string, FontRoleConfig>;
+  color: ColorDeltaMap | null;
+} | null {
   try {
     const json = decodeURIComponent(atob(hash.replace(/^#/, "")));
-    const parsed = JSON.parse(json) as Record<string, FontRoleConfig>;
-    return parsed;
+    const parsed = JSON.parse(json) as LabPayload | Record<string, FontRoleConfig>;
+
+    // Detect legacy format: keys are role IDs (e.g. "hero-headline")
+    // New format has a "type" key at top level
+    if ("type" in parsed && typeof (parsed as LabPayload).type === "object") {
+      const payload = parsed as LabPayload;
+      return { type: payload.type, color: payload.color ?? null };
+    }
+
+    // Legacy: the whole object is the type map
+    return {
+      type: parsed as Record<string, FontRoleConfig>,
+      color: null,
+    };
   } catch {
     return null;
   }
