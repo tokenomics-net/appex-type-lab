@@ -98,11 +98,12 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
   const BUMP_ALL        = buildBumpAll();
   const BASELINE_COLORS = buildBaselineColorDeltas();
 
-  const [preset,       setPreset]       = useState<PresetName>("Baseline");
-  const [typeValues,   setTypeValues]   = useState<Record<string, FontRoleConfig>>(BASELINE);
-  const [colorDeltas,  setColorDeltas]  = useState<ColorDeltaMap>(BASELINE_COLORS);
-  const [copied,       setCopied]       = useState<"css" | "url" | null>(null);
-  const [colorOpen,    setColorOpen]    = useState<boolean>(false);
+  const [preset,        setPreset]        = useState<PresetName>("Baseline");
+  const [typeValues,    setTypeValues]    = useState<Record<string, FontRoleConfig>>(BASELINE);
+  const [colorDeltas,   setColorDeltas]   = useState<ColorDeltaMap>(BASELINE_COLORS);
+  const [copied,        setCopied]        = useState<"css" | "url" | null>(null);
+  const [colorOpen,     setColorOpen]     = useState<boolean>(true);
+  const [expandedRows,  setExpandedRows]  = useState<Record<string, boolean>>({});
   const initRef = useRef(false);
 
   // On mount: check URL hash first, then localStorage
@@ -488,6 +489,46 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
           color: #FED607;
         }
 
+        /* ---- Per-row "More" disclosure ---- */
+        .panel-role__primary {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .panel-role__more-btn {
+          flex-shrink: 0;
+          padding: 2px 7px;
+          border-radius: 3px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: transparent;
+          color: rgba(255,255,255,0.38);
+          font-size: 9px;
+          font-family: system-ui, sans-serif;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: background 100ms, color 100ms, border-color 100ms;
+          white-space: nowrap;
+        }
+        .panel-role__more-btn:hover {
+          background: rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.7);
+          border-color: rgba(255,255,255,0.18);
+        }
+        .panel-role__more-btn--open {
+          background: rgba(254,214,7,0.08);
+          border-color: rgba(254,214,7,0.25);
+          color: rgba(254,214,7,0.65);
+        }
+        .panel-role__advanced {
+          margin-top: 6px;
+          padding: 6px 8px;
+          background: rgba(255,255,255,0.025);
+          border-radius: 4px;
+          border: 1px solid rgba(255,255,255,0.06);
+        }
+
         /* ---- Color token rows ---- */
         .panel-color-token {
           padding: 10px 16px;
@@ -667,12 +708,13 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
         </div>
 
         {TYPE_ROLES.map((role) => {
-          const cur = typeValues[role.id] ?? role.baseline;
+          const cur       = typeValues[role.id] ?? role.baseline;
           const baseSize  = parseFloat(role.baseline.size);
           const curSize   = parseFloat(cur.size);
           const minSize   = Math.round(baseSize * 0.5);
           const maxSize   = Math.round(baseSize * 2.0);
           const curRem    = (curSize / 16).toFixed(3);
+          const isExpanded = expandedRows[role.id] ?? false;
 
           return (
             <div key={role.id} className="panel-role">
@@ -683,67 +725,83 @@ export function ControlPanel({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
                 </span>
               </div>
 
-              {/* Size slider */}
-              <div className="panel-row">
-                <span className="panel-row__name">Size</span>
-                <input
-                  type="range"
-                  className="panel-row__slider"
-                  min={minSize}
-                  max={maxSize}
-                  step={0.5}
-                  value={curSize}
-                  onChange={(e) => updateRole(role.id, "size", `${e.target.value}px`)}
-                />
-                <span className="panel-row__value">{curSize}px / {curRem}rem</span>
-              </div>
-
-              {/* Line height slider */}
-              <div className="panel-row">
-                <span className="panel-row__name">Line height</span>
-                <input
-                  type="range"
-                  className="panel-row__slider"
-                  min={1.0}
-                  max={2.0}
-                  step={0.05}
-                  value={cur.lineHeight}
-                  onChange={(e) => updateRole(role.id, "lineHeight", parseFloat(e.target.value))}
-                />
-                <span className="panel-row__value">{cur.lineHeight.toFixed(2)}</span>
-              </div>
-
-              {/* Letter spacing slider */}
-              <div className="panel-row">
-                <span className="panel-row__name">Letter spacing</span>
-                <input
-                  type="range"
-                  className="panel-row__slider"
-                  min={-0.05}
-                  max={0.1}
-                  step={0.005}
-                  value={parseFloat(cur.letterSpacing)}
-                  onChange={(e) => updateRole(role.id, "letterSpacing", `${parseFloat(e.target.value).toFixed(3)}em`)}
-                />
-                <span className="panel-row__value">{parseFloat(cur.letterSpacing).toFixed(3)}em</span>
-              </div>
-
-              {/* Weight buttons */}
-              <div className="panel-weight-row">
-                <span className="panel-weight-row__name">Weight</span>
-                <div className="panel-weight-btns">
-                  {role.availableWeights.map((w) => (
-                    <button
-                      key={w}
-                      type="button"
-                      className={`panel-weight-btn${cur.weight === w ? " panel-weight-btn--active" : ""}`}
-                      onClick={() => updateRole(role.id, "weight", w)}
-                    >
-                      {w}
-                    </button>
-                  ))}
+              {/* Primary row: size slider + More button */}
+              <div className="panel-role__primary">
+                <div className="panel-row" style={{ flex: 1, marginBottom: 0 }}>
+                  <span className="panel-row__name">Size</span>
+                  <input
+                    type="range"
+                    className="panel-row__slider"
+                    min={minSize}
+                    max={maxSize}
+                    step={0.5}
+                    value={curSize}
+                    onChange={(e) => updateRole(role.id, "size", `${e.target.value}px`)}
+                  />
+                  <span className="panel-row__value">{curSize}px / {curRem}rem</span>
                 </div>
+                <button
+                  type="button"
+                  aria-expanded={isExpanded}
+                  aria-controls={`advanced-${role.id}`}
+                  className={`panel-role__more-btn${isExpanded ? " panel-role__more-btn--open" : ""}`}
+                  onClick={() => setExpandedRows((prev) => ({ ...prev, [role.id]: !prev[role.id] }))}
+                >
+                  {isExpanded ? "Less" : "More"}
+                </button>
               </div>
+
+              {/* Advanced controls: line height, letter spacing, weight */}
+              {isExpanded && (
+                <div id={`advanced-${role.id}`} className="panel-role__advanced">
+                  {/* Line height slider */}
+                  <div className="panel-row">
+                    <span className="panel-row__name">Line height</span>
+                    <input
+                      type="range"
+                      className="panel-row__slider"
+                      min={1.0}
+                      max={2.0}
+                      step={0.05}
+                      value={cur.lineHeight}
+                      onChange={(e) => updateRole(role.id, "lineHeight", parseFloat(e.target.value))}
+                    />
+                    <span className="panel-row__value">{cur.lineHeight.toFixed(2)}</span>
+                  </div>
+
+                  {/* Letter spacing slider */}
+                  <div className="panel-row">
+                    <span className="panel-row__name">Letter spacing</span>
+                    <input
+                      type="range"
+                      className="panel-row__slider"
+                      min={-0.05}
+                      max={0.1}
+                      step={0.005}
+                      value={parseFloat(cur.letterSpacing)}
+                      onChange={(e) => updateRole(role.id, "letterSpacing", `${parseFloat(e.target.value).toFixed(3)}em`)}
+                    />
+                    <span className="panel-row__value">{parseFloat(cur.letterSpacing).toFixed(3)}em</span>
+                  </div>
+
+                  {/* Weight buttons */}
+                  <div className="panel-weight-row" style={{ marginBottom: 0 }}>
+                    <span className="panel-weight-row__name">Weight</span>
+                    <div className="panel-weight-btns">
+                      {role.availableWeights.map((w) => (
+                        <button
+                          key={w}
+                          type="button"
+                          className={`panel-weight-btn${cur.weight === w ? " panel-weight-btn--active" : ""}`}
+                          onClick={() => updateRole(role.id, "weight", w)}
+                        >
+                          {w}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
