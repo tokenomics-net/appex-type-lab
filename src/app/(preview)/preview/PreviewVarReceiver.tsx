@@ -27,7 +27,6 @@ interface CssVarsMessage {
 
 /** Role IDs that have -d/-m split vars. Must match TYPE_ROLES in type-roles.ts. */
 const ROLE_IDS = [
-  "nav-link",
   "hero-headline",
   "hero-subhead",
   "hero-meta",

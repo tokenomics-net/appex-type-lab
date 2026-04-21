@@ -175,35 +175,30 @@
      the ControlPanel via JS. The resolved --type-*-size vars switch
      at 768px via the media query below.
      Colors are shared across breakpoints.
+     Nav-link is NOT a tunable role; it is driven by ported CSS below.
      ================================================================ */
 
-  /* nav-link -- 14px plain, no breakpoint (website-v2 globals.css .header-nav-link) */
-  --type-nav-link-size-d:        14px;
-  --type-nav-link-size-m:        14px;
-  --color-nav-link:              #E0E0E0;
-
-  /* hero-headline -- clamp(56px,7.5vw,112px): 96px@1280px, 56px@390px */
+  /* hero-headline -- measured 96px@1280px, 56px@390px */
   --type-hero-headline-size-d:   96px;
   --type-hero-headline-size-m:   56px;
   --color-hero-headline:         #E8EAF0;
 
-  /* hero-subhead -- clamp(15px,1.8vw,18px): 18px@1280px, 15px@390px */
+  /* hero-subhead -- measured 18px@1280px, 15px@390px */
   --type-hero-subhead-size-d:    18px;
   --type-hero-subhead-size-m:    15px;
   --color-hero-subhead:          #A892BD;
 
-  /* hero-meta -- 12px plain, no breakpoint (HeroSection.tsx .hero-bleed__meta) */
+  /* hero-meta -- measured 12px@1280px and @390px */
   --type-hero-meta-size-d:       12px;
   --type-hero-meta-size-m:       12px;
   --color-hero-meta:             #FED607;
 
-  /* cta-btn -- 14px plain, no breakpoint (website-v2 globals.css .ax-btn--primary) */
+  /* cta-btn -- measured 14px@1280px and @390px */
   --type-cta-btn-size-d:         14px;
   --type-cta-btn-size-m:         14px;
   --color-cta-btn:               #0A0F1F;
 
   /* Resolved sizes: desktop by default, overridden to mobile below 768px */
-  --type-nav-link-size:          var(--type-nav-link-size-d);
   --type-hero-headline-size:     var(--type-hero-headline-size-d);
   --type-hero-subhead-size:      var(--type-hero-subhead-size-d);
   --type-hero-meta-size:         var(--type-hero-meta-size-d);
@@ -212,7 +207,6 @@
 
 @media (max-width: 767px) {
   :root {
-    --type-nav-link-size:        var(--type-nav-link-size-m);
     --type-hero-headline-size:   var(--type-hero-headline-size-m);
     --type-hero-subhead-size:    var(--type-hero-subhead-size-m);
     --type-hero-meta-size:       var(--type-hero-meta-size-m);
@@ -530,17 +524,17 @@ body.lab-body {
   outline-offset: 2px;
 }
 
-/* nav link uses CSS variables for size and color */
+/* nav link -- ported verbatim from website-v2/src/app/globals.css
+   font-size and color are hardcoded; not driven by lab variables */
 .header-nav-link {
   position: relative;
   display: inline-block;
   font-family: var(--font-display-family);
-  font-size: var(--type-nav-link-size);
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-nav-link);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.88);
   text-decoration: none;
   padding: 4px 0;
 }

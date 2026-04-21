@@ -7,38 +7,29 @@
  * No line-height, weight, letter-spacing, or preset builders beyond Baseline.
  *
  * ----------------------------------------------------------------
- * BASELINE VALUES -- extracted from website-v2 live site
- * Source files:
- *   website-v2/src/app/globals.css          (nav-link, cta-btn, meta)
- *   website-v2/src/components/home/HeroSection.tsx  (h1, subhead, meta)
+ * Baselines measured from website-v2 dev server on 2026-04-20:
+ *   Viewport desktop = 1280x800, mobile = 390x844
+ *   Tool: Playwright getComputedStyle(el).fontSize + .color
  *
- * nav-link
- *   Rule:    font-size: 14px  (plain px, no breakpoint override)
- *   Desktop: 14px | Mobile: 14px (hidden on mobile via display:none but same token)
- *   Color:   rgba(255,255,255,0.88) -- approximated as #E0E0E0 on #0A0F1F
+ *   hero-headline: desktop=96px (1280 viewport), mobile=56px (390 viewport)
+ *     selector: .hero-bleed__h1
+ *     color: rgba(255, 255, 255, 0.92) => #E8EAF0 (blended approx for picker)
  *
- * hero-headline
- *   Rule:    clamp(56px, 7.5vw, 112px)
- *   Desktop: 7.5vw at 1280px = 96px  (within 56-112 range)
- *   Mobile:  7.5vw at 390px  = 29.25px --> clamped to MIN = 56px
- *   Color:   var(--text-primary) = rgba(255,255,255,0.92) ~ #E8EAF0
+ *   hero-subhead: desktop=18px, mobile=15px
+ *     selector: .hero-bleed__subhead
+ *     color: rgba(185, 160, 204, 0.78)
  *
- * hero-subhead
- *   Rule:    clamp(15px, 1.8vw, 18px)
- *   Desktop: 1.8vw at 1280px = 23.04px --> clamped to MAX = 18px
- *   Mobile:  1.8vw at 390px  = 7.02px  --> clamped to MIN = 15px
- *   Color:   var(--text-secondary) = rgba(185,160,204,0.78) ~ #A892BD
+ *   hero-meta: desktop=12px, mobile=12px
+ *     selector: .hero-bleed__meta
+ *     color: rgb(254, 214, 7)
  *
- * hero-meta (yellow tagline)
- *   Rule:    font-size: 12px  (plain px, no clamp, no breakpoint override)
- *   Desktop: 12px | Mobile: 12px
- *   Color:   var(--ax-capital-yellow) = #FED607
- *             (opacity: 0.65 is applied on the element, not the token)
+ *   cta-btn: desktop=14px, mobile=14px
+ *     selector: .ax-btn--primary
+ *     color: rgb(10, 15, 31)
  *
- * cta-btn
- *   Rule:    font-size: 14px  (.ax-btn--primary in globals.css, plain px)
- *   Desktop: 14px | Mobile: 14px
- *   Color:   var(--ax-fortress) = #0A0F1F  (button text on yellow bg)
+ * Nav-link is NOT a tunable role. The nav renders at whatever the ported
+ * SiteHeader CSS dictates (14px hardcoded, rgba(255,255,255,0.88)). It is
+ * not a lab variable.
  * ----------------------------------------------------------------
  */
 
@@ -73,11 +64,6 @@ export interface TypeRole {
 
 export const TYPE_ROLES: TypeRole[] = [
   {
-    id: "nav-link",
-    label: "Nav link",
-    baseline: { desktopSize: 14, mobileSize: 14, color: "#E0E0E0" },
-  },
-  {
     id: "hero-headline",
     label: "Hero headline",
     baseline: { desktopSize: 96, mobileSize: 56, color: "#E8EAF0" },
@@ -107,36 +93,58 @@ export function buildBaseline(): RoleValues {
   return Object.fromEntries(TYPE_ROLES.map((r) => [r.id, { ...r.baseline }]));
 }
 
-const STORAGE_KEY = "appex-type-lab-v3";
+const STORAGE_KEY = "appex-type-lab-v4";
 
 /**
- * Load from localStorage, migrating the old single-size shape if found.
- * Old shape: { size: number, color: string }
- * New shape: { desktopSize: number, mobileSize: number, color: string }
+ * Load from localStorage, migrating old shapes if found.
+ * Old shapes:
+ *   v2: { size: number, color: string } (single size)
+ *   v3: { desktopSize, mobileSize, color } with nav-link included
+ * New shape (v4): same structure as v3 but without nav-link.
  */
 export function loadFromStorage(): RoleValues | null {
   try {
     // Try new key first
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw) as RoleValues;
+      const parsed = JSON.parse(raw) as Record<string, TypeRoleConfig>;
+      // Drop nav-link if somehow present (migration safety)
+      delete parsed["nav-link"];
+      return parsed;
     }
 
-    // Attempt migration from old v2 key
-    const legacy = localStorage.getItem("appex-type-lab-v2");
-    if (!legacy) return null;
-    const parsed = JSON.parse(legacy) as Record<string, LegacyTypeRoleConfig>;
+    // Attempt migration from v3 key
+    const v3 = localStorage.getItem("appex-type-lab-v3");
+    if (v3) {
+      const parsed = JSON.parse(v3) as Record<string, LegacyTypeRoleConfig>;
+      const migrated: RoleValues = {};
+      for (const [id, cfg] of Object.entries(parsed)) {
+        // Drop nav-link during migration
+        if (id === "nav-link") continue;
+        if (typeof cfg.desktopSize === "number" && typeof cfg.mobileSize === "number") {
+          migrated[id] = { desktopSize: cfg.desktopSize, mobileSize: cfg.mobileSize, color: cfg.color };
+        } else if (typeof cfg.size === "number") {
+          migrated[id] = { desktopSize: cfg.size, mobileSize: cfg.size, color: cfg.color };
+        }
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      localStorage.removeItem("appex-type-lab-v3");
+      return migrated;
+    }
+
+    // Attempt migration from v2 key
+    const v2 = localStorage.getItem("appex-type-lab-v2");
+    if (!v2) return null;
+    const parsed = JSON.parse(v2) as Record<string, LegacyTypeRoleConfig>;
     const migrated: RoleValues = {};
     for (const [id, cfg] of Object.entries(parsed)) {
+      if (id === "nav-link") continue;
       if (typeof cfg.desktopSize === "number" && typeof cfg.mobileSize === "number") {
-        // Already new shape -- shouldn't happen under v2 key but handle it
         migrated[id] = { desktopSize: cfg.desktopSize, mobileSize: cfg.mobileSize, color: cfg.color };
       } else if (typeof cfg.size === "number") {
-        // Old single-size shape -- use size for both axes
         migrated[id] = { desktopSize: cfg.size, mobileSize: cfg.size, color: cfg.color };
       }
     }
-    // Persist under new key and remove old
     localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
     localStorage.removeItem("appex-type-lab-v2");
     return migrated;

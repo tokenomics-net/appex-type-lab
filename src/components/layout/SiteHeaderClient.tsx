@@ -5,7 +5,8 @@
  * "use client" justified: scroll event listener, useState for drawer,
  * and data-scrolled attribute mutation require client-side code.
  *
- * Typography: nav link uses var(--type-nav-link-*) CSS variables.
+ * Typography: nav link uses hardcoded 14px / rgba(255,255,255,0.88) from website-v2 globals.css.
+ * Not a lab variable.
  */
 
 import { useEffect, useState, useRef, useCallback } from "react";
