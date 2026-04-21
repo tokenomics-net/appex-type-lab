@@ -32,7 +32,7 @@ const PANEL_STYLES = `
 
   .cp-role {
     display: grid;
-    grid-template-columns: 120px 1fr 80px 36px;
+    grid-template-columns: 120px 1fr auto auto 36px;
     align-items: center;
     gap: 10px;
     padding: 10px 0;
@@ -73,12 +73,46 @@ const PANEL_STYLES = `
     border: none;
   }
 
-  .cp-size-val {
-    font-size: 11px;
-    color: rgba(255,255,255,0.55);
+  /* Editable px number input */
+  .cp-px-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+  }
+  .cp-px-input {
+    width: 52px;
+    padding: 2px 4px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 3px;
+    color: rgba(255,255,255,0.88);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-family: system-ui, sans-serif;
     text-align: right;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .cp-px-input::-webkit-inner-spin-button,
+  .cp-px-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .cp-px-input:focus {
+    border-color: rgba(254,214,7,0.5);
+    background: rgba(254,214,7,0.06);
+  }
+  .cp-px-suffix {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+  }
+
+  /* Muted rem readout */
+  .cp-rem-val {
+    font-size: 10px;
+    color: rgba(255,255,255,0.32);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    min-width: 70px;
+    text-align: left;
   }
 
   .cp-color {
@@ -156,6 +190,7 @@ export function ControlPanel() {
         const cur = values[role.id] ?? role.baseline;
         const minSize = Math.round(role.baseline.size * 0.5);
         const maxSize = Math.round(role.baseline.size * 2.0);
+        const remDisplay = (cur.size / 16).toFixed(3).replace(/\.?0+$/, "");
 
         return (
           <div key={role.id} className="cp-role">
@@ -166,13 +201,39 @@ export function ControlPanel() {
               className="cp-slider"
               min={minSize}
               max={maxSize}
-              step={0.5}
+              step={1}
               value={cur.size}
-              onChange={(e) => updateSize(role.id, parseFloat(e.target.value))}
+              onChange={(e) => updateSize(role.id, parseInt(e.target.value, 10))}
               aria-label={`${role.label} size`}
             />
 
-            <span className="cp-size-val">{cur.size}px</span>
+            {/* Editable px input -- synced with slider */}
+            <div className="cp-px-input-wrap">
+              <input
+                type="number"
+                className="cp-px-input"
+                min={minSize}
+                max={maxSize}
+                step={1}
+                value={cur.size}
+                onChange={(e) => {
+                  const raw = parseInt(e.target.value, 10);
+                  if (!isNaN(raw)) updateSize(role.id, raw);
+                }}
+                onBlur={(e) => {
+                  const raw = parseInt(e.target.value, 10);
+                  const clamped = isNaN(raw)
+                    ? minSize
+                    : Math.min(maxSize, Math.max(minSize, raw));
+                  updateSize(role.id, clamped);
+                }}
+                aria-label={`${role.label} size in px`}
+              />
+              <span className="cp-px-suffix">px</span>
+            </div>
+
+            {/* Muted rem readout */}
+            <span className="cp-rem-val">≈ {remDisplay}rem</span>
 
             <input
               type="color"

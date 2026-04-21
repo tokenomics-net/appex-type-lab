@@ -77,18 +77,22 @@ export function saveToStorage(values: RoleValues): void {
 }
 
 /**
- * Build a :root { --type-*-size: ...px; --color-*: #...; } CSS block
+ * Build a :root { --type-*-size: ...rem; --color-*: #...; } CSS block
  * for only the live roles. Used by the Copy CSS button.
+ * Sizes are exported as rem (base 16px); internal state stays in px.
  */
 export function toCssBlock(values: RoleValues): string {
+  const comment =
+    "/* Based on html { font-size: 16px; }. Colors and sizes for appeX -- paste into globals.css :root. */";
   const lines = TYPE_ROLES.flatMap((r) => {
     const cfg = values[r.id] ?? r.baseline;
+    const remVal = (cfg.size / 16).toFixed(3);
     return [
-      `  --type-${r.id}-size: ${cfg.size}px;`,
+      `  --type-${r.id}-size: ${remVal}rem;`,
       `  --color-${r.id}: ${cfg.color};`,
     ];
   });
-  return `:root {\n${lines.join("\n")}\n}`;
+  return `${comment}\n:root {\n${lines.join("\n")}\n}`;
 }
 
 /** Apply all role values to the document :root (outer lab document). */
