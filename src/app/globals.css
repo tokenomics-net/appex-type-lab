@@ -177,29 +177,29 @@
      Colors are shared across breakpoints.
      ================================================================ */
 
-  /* nav-link */
+  /* nav-link -- 14px plain, no breakpoint (website-v2 globals.css .header-nav-link) */
   --type-nav-link-size-d:        14px;
   --type-nav-link-size-m:        14px;
   --color-nav-link:              #E0E0E0;
 
-  /* hero-headline */
-  --type-hero-headline-size-d:   72px;
-  --type-hero-headline-size-m:   32px;
+  /* hero-headline -- clamp(56px,7.5vw,112px): 96px@1280px, 56px@390px */
+  --type-hero-headline-size-d:   96px;
+  --type-hero-headline-size-m:   56px;
   --color-hero-headline:         #E8EAF0;
 
-  /* hero-subhead */
+  /* hero-subhead -- clamp(15px,1.8vw,18px): 18px@1280px, 15px@390px */
   --type-hero-subhead-size-d:    18px;
-  --type-hero-subhead-size-m:    16px;
+  --type-hero-subhead-size-m:    15px;
   --color-hero-subhead:          #A892BD;
 
-  /* hero-meta */
-  --type-hero-meta-size-d:       16px;
-  --type-hero-meta-size-m:       14px;
+  /* hero-meta -- 12px plain, no breakpoint (HeroSection.tsx .hero-bleed__meta) */
+  --type-hero-meta-size-d:       12px;
+  --type-hero-meta-size-m:       12px;
   --color-hero-meta:             #FED607;
 
-  /* cta-btn */
-  --type-cta-btn-size-d:         16px;
-  --type-cta-btn-size-m:         16px;
+  /* cta-btn -- 14px plain, no breakpoint (website-v2 globals.css .ax-btn--primary) */
+  --type-cta-btn-size-d:         14px;
+  --type-cta-btn-size-m:         14px;
   --color-cta-btn:               #0A0F1F;
 
   /* Resolved sizes: desktop by default, overridden to mobile below 768px */

@@ -153,12 +153,20 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
           - flex: 1 1 auto       grows vertically to fill the pane
           - min-width: {targetWidth}px explicitly sets the floor so the div
                                  never collapses below the iframe width
+          - margin: 0 auto       centers the iframe horizontally when the pane
+                                 is WIDER than the iframe (e.g. browser at 1920px,
+                                 panel 400px, preview ~1520px, iframe 1280px).
+                                 Dead space is split evenly left and right.
+                                 When the pane is narrower than the iframe,
+                                 overflow-x: auto on .lab-preview scrolls the pane
+                                 as before -- auto margins have no effect in that case.
       */}
       <div
         style={{
           width:    `${targetWidth}px`,
           flex:     "1 1 auto",
           minWidth: `${targetWidth}px`,
+          margin:   "0 auto",
         }}
       >
         <iframe

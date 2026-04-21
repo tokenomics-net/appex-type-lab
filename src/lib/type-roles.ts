@@ -5,6 +5,41 @@
  * Each role exposes three controls: desktopSize (px), mobileSize (px),
  * and color (hex -- shared between both breakpoints).
  * No line-height, weight, letter-spacing, or preset builders beyond Baseline.
+ *
+ * ----------------------------------------------------------------
+ * BASELINE VALUES -- extracted from website-v2 live site
+ * Source files:
+ *   website-v2/src/app/globals.css          (nav-link, cta-btn, meta)
+ *   website-v2/src/components/home/HeroSection.tsx  (h1, subhead, meta)
+ *
+ * nav-link
+ *   Rule:    font-size: 14px  (plain px, no breakpoint override)
+ *   Desktop: 14px | Mobile: 14px (hidden on mobile via display:none but same token)
+ *   Color:   rgba(255,255,255,0.88) -- approximated as #E0E0E0 on #0A0F1F
+ *
+ * hero-headline
+ *   Rule:    clamp(56px, 7.5vw, 112px)
+ *   Desktop: 7.5vw at 1280px = 96px  (within 56-112 range)
+ *   Mobile:  7.5vw at 390px  = 29.25px --> clamped to MIN = 56px
+ *   Color:   var(--text-primary) = rgba(255,255,255,0.92) ~ #E8EAF0
+ *
+ * hero-subhead
+ *   Rule:    clamp(15px, 1.8vw, 18px)
+ *   Desktop: 1.8vw at 1280px = 23.04px --> clamped to MAX = 18px
+ *   Mobile:  1.8vw at 390px  = 7.02px  --> clamped to MIN = 15px
+ *   Color:   var(--text-secondary) = rgba(185,160,204,0.78) ~ #A892BD
+ *
+ * hero-meta (yellow tagline)
+ *   Rule:    font-size: 12px  (plain px, no clamp, no breakpoint override)
+ *   Desktop: 12px | Mobile: 12px
+ *   Color:   var(--ax-capital-yellow) = #FED607
+ *             (opacity: 0.65 is applied on the element, not the token)
+ *
+ * cta-btn
+ *   Rule:    font-size: 14px  (.ax-btn--primary in globals.css, plain px)
+ *   Desktop: 14px | Mobile: 14px
+ *   Color:   var(--ax-fortress) = #0A0F1F  (button text on yellow bg)
+ * ----------------------------------------------------------------
  */
 
 export interface TypeRoleConfig {
@@ -45,22 +80,22 @@ export const TYPE_ROLES: TypeRole[] = [
   {
     id: "hero-headline",
     label: "Hero headline",
-    baseline: { desktopSize: 72, mobileSize: 32, color: "#E8EAF0" },
+    baseline: { desktopSize: 96, mobileSize: 56, color: "#E8EAF0" },
   },
   {
     id: "hero-subhead",
     label: "Hero subhead",
-    baseline: { desktopSize: 18, mobileSize: 16, color: "#A892BD" },
+    baseline: { desktopSize: 18, mobileSize: 15, color: "#A892BD" },
   },
   {
     id: "hero-meta",
     label: "Yellow tagline line",
-    baseline: { desktopSize: 16, mobileSize: 14, color: "#FED607" },
+    baseline: { desktopSize: 12, mobileSize: 12, color: "#FED607" },
   },
   {
     id: "cta-btn",
     label: "CTA button",
-    baseline: { desktopSize: 16, mobileSize: 16, color: "#0A0F1F" },
+    baseline: { desktopSize: 14, mobileSize: 14, color: "#0A0F1F" },
   },
 ];
 
