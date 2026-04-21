@@ -107,3 +107,84 @@ Build: 0 errors, 0 warnings. Routes `/` and `/preview` both return 200.
 ### Prior Check Results Preserved
 
 All 12 slider/control checks from the Slider Fix update remain passing. The vertical-stack refactor touched only layout CSS and the PreviewPane outer wrapper -- zero changes to the CSS variable bridge, postMessage protocol, ControlPanel state, localStorage, or Copy CSS logic.
+
+---
+
+## Update: Side-by-Side Restored + Visual QA
+
+**Commit:** `f68dac7` -- ui: restore side-by-side layout with proper flex-shrink + min-width:0
+**Date:** 2026-04-20
+**Head reverted:** b1bafde (broken vertical-stack-at-all-widths)
+
+### What Went Wrong (b1bafde)
+
+The prior commit treated the overflow problem as a layout model problem and replaced the two-column design with a full vertical stack at all viewport widths. This fixed the overflow but broke the mental model of a config tool: panel-on-top / preview-below is not how designers expect to work with a live configuration UI.
+
+The real fix is: keep side-by-side at desktop, solve overflow by giving flex children `min-width: 0` and putting horizontal scroll on the preview pane (not on body).
+
+### Layout Architecture (restored + corrected)
+
+**LabShell.tsx:**
+- `.lab-shell`: `display: flex; flex-direction: column; min-height: 100vh` -- normal document flow, not height-locked.
+- `.lab-topbar`: `position: sticky; top: 0; z-index: 10` -- stays visible at all times.
+- `.lab-columns`: `display: flex; flex-direction: row; flex-wrap: nowrap; flex: 1 1 0` -- the two-column row at >=1024px.
+- `.lab-panel`: `flex: 0 1 400px; min-width: 320px; max-width: 420px` -- natural basis, allowed to shrink.
+- `.lab-preview`: `flex: 1 1 0; min-width: 0; overflow-x: auto` -- takes remaining width; min-width: 0 is the critical unlock that lets the pane shrink below the iframe's intrinsic width.
+- `@media (max-width: 1023px)`: `.lab-columns` switches to `flex-direction: column`. Panel becomes full-width block. This is the only stacking breakpoint.
+- `@media (max-width: 500px)`: topbar font sizes condense to prevent topbar overflow on phone widths.
+
+**PreviewPane.tsx:**
+- Outer div: `display: flex; flex-direction: column; min-height: 100vh` -- fills the pane column.
+- Iframe wrapper: `width: {targetWidth}px; min-width: {targetWidth}px` -- explicitly sized to the iframe's native width. When the `.lab-preview` pane is narrower than this, the pane's `overflow-x: auto` triggers horizontal scroll on the PANE. Body stays clean.
+- Iframe: native 390px (Mobile) or 1280px (Desktop). No scale transform. No height lock.
+
+### Overflow Contract Summary
+
+| Element | overflow-x | overflow-y | Notes |
+|---------|-----------|-----------|-------|
+| `body.lab-body` | hidden | (auto) | Prevents any body hscroll; scrollWidth may exceed clientWidth for hidden content -- correct per spec |
+| `.lab-shell` | (inherit) | (auto) | Normal flow |
+| `.lab-preview` | auto | auto | This is where the pane scrolls when iframe > pane width |
+| `.lab-panel` | hidden | auto | Panel scrolls vertically if taller than viewport |
+
+### Screenshot QA Results
+
+All 7 viewports tested via Python Playwright on dev server (port 3043).
+
+| Viewport | Screenshot | Direction | Body hScroll | Side-by-side | Result |
+|----------|-----------|-----------|-------------|-------------|--------|
+| 1920px | `/tmp/lab-qa/1920.png` | row | False | Panel left=0 w=400, Preview left=400 w=1520 | PASS |
+| 1440px | `/tmp/lab-qa/1440.png` | row | False | Panel left=0 w=400, Preview left=400 w=1040 | PASS |
+| 1280px | `/tmp/lab-qa/1280.png` | row | False | Panel left=0 w=400, Preview left=400 w=880 | PASS |
+| 1100px | `/tmp/lab-qa/1100.png` | row | False | Panel left=0 w=400, Preview left=400 w=700 | PASS |
+| 900px | `/tmp/lab-qa/900.png` | column | False | Stacked -- correct | PASS |
+| 768px | `/tmp/lab-qa/768.png` | column | False | Stacked -- correct | PASS |
+| 390px | `/tmp/lab-qa/390.png` | column | False | Stacked -- correct | PASS |
+
+Visual observation per screenshot:
+
+- 1100px: panel (sliders) visible on LEFT, appeX site preview on RIGHT -- side-by-side confirmed
+- 900px: full-width panel on top, preview below -- stacked as expected
+- 768px: stacked, topbar readable, all controls visible
+- 390px: stacked, topbar fits without overflow (Reset + Copy CSS both visible), sliders usable
+
+### Build + Route Checks
+
+- `npm run build`: 0 errors, 0 warnings
+- TypeScript: 0 errors
+- Routes: `/` returns 200, `/preview` returns 200
+- Hydration warnings: zero on both routes
+
+### Slider/Control Checks
+
+All 12 checks from the Slider Fix update (ff6feec) confirmed preserved:
+- Desktop + Mobile sliders drive their breakpoint vars correctly
+- Px inputs + rem readouts sync with sliders
+- Color picker updates preview immediately
+- Reset, Copy CSS, localStorage, Mobile/Desktop toggle all intact
+- Preview iframe receives CSS vars on every slider move
+- No hydration warnings on `/` or `/preview`
+
+### No Surprises
+
+The topbar at 390px required a minor additional `@media (max-width: 500px)` condensing rule (smaller font sizes, tighter padding) to prevent topbar overflow at phone widths. This was not present in the original design but is required for correctness at that breakpoint. All other logic is untouched.
