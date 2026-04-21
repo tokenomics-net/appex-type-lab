@@ -155,8 +155,11 @@ export function toCssBlock(values: RoleValues): string {
 
 /**
  * Apply all role values to the document :root via the -d / -m CSS var pattern.
- * ControlPanel writes --type-*-size-d and --type-*-size-m; the media query
- * in globals.css resolves --type-*-size to the correct one at each breakpoint.
+ * ControlPanel writes --type-*-size-d and --type-*-size-m.
+ * We also write --type-*-size directly (desktop value) so the outer lab page
+ * always reflects the current desktop size. Tailwind v4 resolves var() chains
+ * in :root at build time, so we cannot rely on the stylesheet cascade to bridge
+ * -d/-m into the resolved var; we must set it explicitly.
  * Colors are written directly to --color-*.
  */
 export function applyToRoot(values: RoleValues): void {
@@ -165,6 +168,10 @@ export function applyToRoot(values: RoleValues): void {
     const cfg = values[role.id] ?? role.baseline;
     root.style.setProperty(`--type-${role.id}-size-d`, `${cfg.desktopSize}px`);
     root.style.setProperty(`--type-${role.id}-size-m`, `${cfg.mobileSize}px`);
+    // Write the resolved alias explicitly. The outer lab page is always desktop-
+    // width so this is always the desktop value. PreviewVarReceiver in the iframe
+    // re-resolves this to the correct breakpoint value based on window.innerWidth.
+    root.style.setProperty(`--type-${role.id}-size`, `${cfg.desktopSize}px`);
     root.style.setProperty(`--color-${role.id}`, cfg.color);
   }
 }

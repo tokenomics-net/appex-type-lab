@@ -65,13 +65,44 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
       } catch { /* noop */ }
     }
 
+    // PreviewVarReceiver sends CSS_VARS_REQUEST on mount (after hydration) to
+    // cover the race condition where the initial postMessage arrived before the
+    // iframe's useEffect registered its listener. Respond with current cssText.
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (!event.data || event.data.type !== "CSS_VARS_REQUEST") return;
+      const cssText = root.style.cssText;
+      if (!cssText) return;
+      try {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "CSS_VARS", cssText },
+          window.location.origin
+        );
+      } catch { /* noop */ }
+    }
+
     const iframe = iframeRef.current;
     iframe?.addEventListener("load", onLoad);
+    window.addEventListener("message", onMessage);
     return () => {
       obs.disconnect();
       iframe?.removeEventListener("load", onLoad);
+      window.removeEventListener("message", onMessage);
     };
   }, []);
+
+  // Re-send current vars whenever viewport changes so PreviewVarReceiver
+  // re-resolves --type-*-size to the correct -d or -m value for the new width.
+  useEffect(() => {
+    const cssText = document.documentElement.style.cssText;
+    if (!cssText) return;
+    try {
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: "CSS_VARS", cssText },
+        window.location.origin
+      );
+    } catch { /* noop */ }
+  }, [viewport]);
 
   const label = viewport === "mobile" ? "Mobile -- 390px" : "Desktop -- 1280px";
 

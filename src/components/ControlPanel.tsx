@@ -187,6 +187,9 @@ export function ControlPanel() {
       const next = { ...prev, [roleId]: { ...prev[roleId], desktopSize: size } };
       saveToStorage(next);
       document.documentElement.style.setProperty(`--type-${roleId}-size-d`, `${size}px`);
+      // Also write the resolved alias so the outer page reflects the desktop value
+      // immediately. Tailwind v4 bakes static values for these; we must override inline.
+      document.documentElement.style.setProperty(`--type-${roleId}-size`, `${size}px`);
       return next;
     });
   }
@@ -196,6 +199,9 @@ export function ControlPanel() {
       const next = { ...prev, [roleId]: { ...prev[roleId], mobileSize: size } };
       saveToStorage(next);
       document.documentElement.style.setProperty(`--type-${roleId}-size-m`, `${size}px`);
+      // Note: we do NOT update --type-{roleId}-size here on the outer page because
+      // the outer page is always desktop-width. The mobile size flows to the iframe
+      // via postMessage and PreviewVarReceiver re-resolves it based on window.innerWidth.
       return next;
     });
   }

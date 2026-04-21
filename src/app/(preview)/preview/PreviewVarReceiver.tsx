@@ -4,10 +4,18 @@
  * "use client" justified: listens to window.message events (browser API)
  * and applies CSS custom property overrides to :root.
  *
- * The outer PreviewPane posts { type: "CSS_VARS", cssText: string }
- * whenever any control changes. This component applies the cssText
- * to document.documentElement.style so the iframe's components pick
- * up the updated --type-* and --color-* variables instantly.
+ * Two-way protocol:
+ *   - On mount, sends { type: "CSS_VARS_REQUEST" } to parent so PreviewPane
+ *     can re-send the current cssText even if the initial postMessage was lost
+ *     to a hydration race condition.
+ *   - Receives { type: "CSS_VARS", cssText } whenever a control changes.
+ *     Applies all vars from cssText to :root inline style.
+ *
+ * Tailwind v4 resolves var() chains in :root at build time, producing
+ * static values for --type-*-size. The stylesheet cascade from -d/-m
+ * vars does not work at runtime. After applying the raw cssText, we
+ * re-derive --type-*-size explicitly from the -d or -m value based on
+ * window.innerWidth (<= 767 = mobile).
  */
 
 import { useEffect } from "react";
@@ -15,6 +23,33 @@ import { useEffect } from "react";
 interface CssVarsMessage {
   type: "CSS_VARS";
   cssText: string;
+}
+
+/** Role IDs that have -d/-m split vars. Must match TYPE_ROLES in type-roles.ts. */
+const ROLE_IDS = [
+  "nav-link",
+  "hero-headline",
+  "hero-subhead",
+  "hero-meta",
+  "cta-btn",
+] as const;
+
+/**
+ * After applying all vars from cssText, re-resolve --type-{role}-size
+ * to the correct -d or -m value based on current window.innerWidth.
+ * This is necessary because Tailwind v4 bakes a static value for the
+ * resolved alias at build time, preventing the cascade from working.
+ */
+function resolveBreakpointVars(): void {
+  const root = document.documentElement;
+  const isMobile = window.innerWidth <= 767;
+  for (const id of ROLE_IDS) {
+    const suffix = isMobile ? "m" : "d";
+    const sourceVal = root.style.getPropertyValue(`--type-${id}-size-${suffix}`);
+    if (sourceVal) {
+      root.style.setProperty(`--type-${id}-size`, sourceVal);
+    }
+  }
 }
 
 export function PreviewVarReceiver() {
@@ -40,9 +75,20 @@ export function PreviewVarReceiver() {
         const value = chunk.slice(colon + 1).trim();
         if (prop) root.style.setProperty(prop, value);
       }
+
+      // Re-resolve the breakpoint-aware alias after applying the raw vars.
+      // This overrides the Tailwind-baked static value with the correct
+      // desktop or mobile size based on this iframe's actual width.
+      resolveBreakpointVars();
     }
 
     window.addEventListener("message", onMessage);
+
+    // On mount: request the current vars from the parent. This covers the
+    // race condition where the initial postMessage from PreviewPane arrived
+    // before this useEffect ran (i.e., before PreviewVarReceiver was hydrated).
+    window.parent.postMessage({ type: "CSS_VARS_REQUEST" }, window.location.origin);
+
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
