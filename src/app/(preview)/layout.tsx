@@ -10,8 +10,14 @@
  * style on <body> to avoid React 19 shorthand-to-longhand normalization.
  */
 
+import type { Viewport } from "next";
 import localFont from "next/font/local";
 import "../globals.css";
+
+export const viewport: Viewport = {
+  width:        "device-width",
+  initialScale: 1,
+};
 
 const tektur = localFont({
   src: [

@@ -250,10 +250,11 @@ body {
   font-family: var(--font-body-family);
 }
 
-/* Lab root: overflow hidden so the split-pane layout never scrolls the
-   outer shell. Applied via className on (lab)/layout.tsx <body>. */
+/* Lab root: vertical-stack layout -- body scrolls normally.
+   overflow-x is hidden to prevent horizontal bleed from non-preview elements;
+   the preview pane manages its own horizontal scroll internally. */
 body.lab-body {
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* ================================================================

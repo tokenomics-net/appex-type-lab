@@ -22,17 +22,25 @@ import { buildBaseline, loadFromStorage, toCssBlock } from "@/lib/type-roles";
 type Viewport = "mobile" | "desktop";
 
 const SHELL_STYLES = `
+  /*
+   * Vertical stack layout: top-bar → control panel → preview pane.
+   * No side-by-side split. Works at every viewport width from 320px up.
+   * The outer page scrolls normally; the preview pane scrolls horizontally
+   * when the iframe is wider than the browser window.
+   */
   .lab-shell {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     background: #060a14;
     font-family: system-ui, -apple-system, sans-serif;
   }
 
   /* ---- Top bar ---- */
   .lab-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -112,45 +120,21 @@ const SHELL_STYLES = `
     color: #16c55e;
   }
 
-  /* ---- Body: panel + single preview ---- */
-  .lab-body {
-    display: flex;
-    flex: 1 1 auto;
-    overflow: hidden;
-    min-height: 0;
-  }
+  /* ---- Control panel: centered block, full-width, auto height ---- */
   .lab-body__panel {
-    width: 380px;
-    flex-shrink: 0;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
     background: #0d1020;
-    border-right: 1px solid rgba(255,255,255,0.07);
-    overflow-y: auto;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
     padding: 16px;
-  }
-  .lab-body__preview {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background: #060a14;
+    box-sizing: border-box;
   }
 
-  /* On narrow browsers: stack vertically */
-  @media (max-width: 900px) {
-    .lab-body { flex-direction: column; }
-    .lab-body__panel {
-      width: 100%;
-      border-right: none;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      flex-shrink: 0;
-      overflow-y: visible;
-      max-height: 50vh;
-    }
-    .lab-body__preview {
-      flex: 1 1 auto;
-      min-height: 300px;
-    }
+  /* ---- Preview pane: horizontal scroll only, no height lock ---- */
+  .lab-body__preview {
+    width: 100%;
+    background: #060a14;
   }
 `;
 
@@ -220,14 +204,14 @@ export function LabShell() {
         </div>
       </div>
 
-      {/* Panel + Single Preview */}
-      <div className="lab-body">
-        <div className="lab-body__panel">
-          <ControlPanel />
-        </div>
-        <div className="lab-body__preview">
-          <PreviewPane viewport={viewport} />
-        </div>
+      {/* Control panel -- stacked above preview at all viewports */}
+      <div className="lab-body__panel">
+        <ControlPanel />
+      </div>
+
+      {/* Preview pane -- below panel, horizontal scroll when iframe is wider than window */}
+      <div className="lab-body__preview">
+        <PreviewPane viewport={viewport} />
       </div>
     </div>
   );

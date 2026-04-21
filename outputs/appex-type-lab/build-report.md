@@ -49,3 +49,61 @@ Four coordinated changes across the postMessage bridge:
 ### Collateral Fixes
 
 No collateral regressions. Zero hydration warnings on both `/` and `/preview` routes. Production build (`npm run build`) completed with 0 errors and 0 warnings.
+
+---
+
+## Update: Vertical Stack + Viewport Meta
+
+**Commit:** `ui: stack panel + preview vertically, fix responsive overflow`
+**Date:** 2026-04-20
+
+### What the Actual Bugs Were
+
+Three compounding issues caused the "too zoomed in / overflowing" symptom:
+
+**Bug 1: `body.lab-body { overflow: hidden; }` in globals.css.** This rule was written to prevent the outer page from scrolling in the old fixed-height split-pane layout. On any viewport narrower than the total combined width of the control panel (380px) + preview iframe (1280px), the body clipped horizontally and the browser used its own scaling fallback, making the UI appear zoomed or misaligned.
+
+**Bug 2: `.lab-shell { height: 100vh; overflow: hidden; }`.** The shell locked itself to exactly viewport height. On narrower screens this trapped the control panel and preview in a too-small box, forcing the browser to reflow unexpectedly.
+
+**Bug 3: Side-by-side flex row with fixed 380px panel + 1280px iframe.** At 1100px browser width, the minimum layout width was 1660px with no wrapping. The `flex-shrink: 0` on the panel prevented it from narrowing. The only escape valve was the browser's own scaling heuristic, which manifested as the "zoomed in" appearance.
+
+**Bug 4 (minor): `(preview)/layout.tsx` missing viewport meta export.** Only `(lab)/layout.tsx` had the `Viewport` export. Added to preview route layout for correctness.
+
+### Layout Changes
+
+**LabShell.tsx:**
+- Removed `.lab-body` flex-row wrapper entirely. No more side-by-side split at any viewport.
+- `.lab-shell` changed from `height: 100vh; overflow: hidden` to `min-height: 100vh` -- normal document flow.
+- `.lab-topbar` made `position: sticky; top: 0; z-index: 10` so it stays visible while scrolling through a tall control panel.
+- `.lab-body__panel` changed from `width: 380px; flex-shrink: 0` to `width: 100%; max-width: 900px; margin: 0 auto` -- centered block, auto height, responsive at all widths.
+- `.lab-body__preview` is now a simple full-width block, no height constraints.
+
+**PreviewPane.tsx:**
+- Outer wrapper changed from `height: 100%; overflow: hidden` to `width: 100%` -- participates in normal document flow.
+- Iframe wrapper changed from `flex: 1 1 auto; overflow-y: hidden` to `width: 100%; overflow-x: auto; overflow-y: visible`.
+- Iframe height changed from `height: 100%` (relied on now-removed flex parent) to `height: 100dvh; min-height: 600px` -- fills one viewport height, internal document scrolls.
+
+**globals.css:**
+- `body.lab-body { overflow: hidden }` changed to `body.lab-body { overflow-x: hidden }` -- prevents non-preview horizontal bleed, allows normal vertical scroll.
+
+**(preview)/layout.tsx:**
+- Added `export const viewport: Viewport` with `width: "device-width", initialScale: 1`.
+
+### Verification Across 8 Viewport Widths
+
+Build: 0 errors, 0 warnings. Routes `/` and `/preview` both return 200.
+
+| Viewport | Horizontal overflow on outer page | Top bar readable | Control panel usable | Preview iframe visible + correct width | Double scrollbars |
+|----------|----------------------------------|------------------|----------------------|----------------------------------------|-------------------|
+| 320px | None (preview pane scrolls internally) | Yes | Yes (full width, stacked) | Yes, 390px Mobile | None |
+| 375px | None | Yes | Yes | Yes, 390px Mobile | None |
+| 414px | None | Yes | Yes | Yes, 390px Mobile | None |
+| 768px | None | Yes | Yes | Yes, 1280px Desktop (pane scrolls) | None |
+| 1024px | None | Yes | Yes | Yes, 1280px Desktop (pane scrolls) | None |
+| 1280px | None | Yes | Yes | Yes, 1280px Desktop (fits exactly) | None |
+| 1400px | None | Yes | Yes | Yes, 1280px Desktop (centered in pane) | None |
+| 1920px | None | Yes | Yes | Yes, 1280px Desktop (centered in pane) | None |
+
+### Prior Check Results Preserved
+
+All 12 slider/control checks from the Slider Fix update remain passing. The vertical-stack refactor touched only layout CSS and the PreviewPane outer wrapper -- zero changes to the CSS variable bridge, postMessage protocol, ControlPanel state, localStorage, or Copy CSS logic.

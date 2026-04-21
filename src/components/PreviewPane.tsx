@@ -107,13 +107,14 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
   const label = viewport === "mobile" ? "Mobile -- 390px" : "Desktop -- 1280px";
 
   return (
+    /*
+     * Outer wrapper: full width, natural document flow.
+     * No height lock -- the section grows with its content.
+     */
     <div
       style={{
-        display:       "flex",
-        flexDirection: "column",
-        height:        "100%",
-        background:    "#060a14",
-        overflow:      "hidden",
+        width:      "100%",
+        background: "#060a14",
       }}
     >
       {/* Viewport label */}
@@ -127,28 +128,27 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
           letterSpacing: "0.08em",
           textTransform: "uppercase" as const,
           borderBottom:  "1px solid rgba(255,255,255,0.06)",
-          flexShrink:    0,
         }}
       >
         {label}
       </div>
 
       {/*
-        Iframe wrapper:
-          - overflow-x: auto  -- horizontal scroll only when the browser is
-            narrower than the iframe's native width (390 or 1280px)
-          - overflow-y: hidden -- the iframe owns vertical scroll; this
-            wrapper must never create a second vertical scrollbar
-        The iframe's height fills this wrapper (100%). Its internal document
-        scrolls vertically as a normal webpage. No minHeight override needed:
-        the iframe document's own content height drives its internal scroll.
+        Iframe scroll wrapper:
+          - overflow-x: auto  -- horizontal scroll when the browser window is
+            narrower than the iframe (e.g. 1280px Desktop on a 1100px monitor)
+          - overflow-y: visible -- the iframe expands to its content height;
+            the outer page scrolls vertically, no double scrollbar
+        The iframe has no explicit height: it sizes to its content via the
+        scrolling="no" + CSS height trick is NOT used here. Instead the iframe
+        renders at a tall fixed height (100dvh) so the user sees a full-page
+        preview. The iframe's own document scrolls internally.
       */}
       <div
         style={{
-          flex:       "1 1 auto",
-          overflowX:  "auto",
-          overflowY:  "hidden",
-          minHeight:  0,
+          width:     "100%",
+          overflowX: "auto",
+          overflowY: "visible",
         }}
       >
         <iframe
@@ -156,9 +156,10 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
           src="/preview"
           width={targetWidth}
           style={{
-            border:  "none",
-            display: "block",
-            height:  "100%",
+            border:    "none",
+            display:   "block",
+            height:    "100dvh",
+            minHeight: "600px",
           }}
           title="Site preview"
         />
