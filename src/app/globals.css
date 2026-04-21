@@ -171,29 +171,53 @@
 
   /* ================================================================
      Typography role CSS variables -- BASELINE values.
-     Simplified: size + color only per role.
-     The control panel overwrites these at runtime via JS.
+     Desktop (-d) and Mobile (-m) sizes are set independently by
+     the ControlPanel via JS. The resolved --type-*-size vars switch
+     at 768px via the media query below.
+     Colors are shared across breakpoints.
      ================================================================ */
 
   /* nav-link */
-  --type-nav-link-size:        14px;
-  --color-nav-link:            #E0E0E0;
+  --type-nav-link-size-d:        14px;
+  --type-nav-link-size-m:        14px;
+  --color-nav-link:              #E0E0E0;
 
   /* hero-headline */
-  --type-hero-headline-size:   80px;
-  --color-hero-headline:       #E8EAF0;
+  --type-hero-headline-size-d:   72px;
+  --type-hero-headline-size-m:   32px;
+  --color-hero-headline:         #E8EAF0;
 
   /* hero-subhead */
-  --type-hero-subhead-size:    16px;
-  --color-hero-subhead:        #A892BD;
+  --type-hero-subhead-size-d:    18px;
+  --type-hero-subhead-size-m:    16px;
+  --color-hero-subhead:          #A892BD;
 
   /* hero-meta */
-  --type-hero-meta-size:       12px;
-  --color-hero-meta:           #FED607;
+  --type-hero-meta-size-d:       16px;
+  --type-hero-meta-size-m:       14px;
+  --color-hero-meta:             #FED607;
 
   /* cta-btn */
-  --type-cta-btn-size:         14px;
-  --color-cta-btn:             #0A0F1F;
+  --type-cta-btn-size-d:         16px;
+  --type-cta-btn-size-m:         16px;
+  --color-cta-btn:               #0A0F1F;
+
+  /* Resolved sizes: desktop by default, overridden to mobile below 768px */
+  --type-nav-link-size:          var(--type-nav-link-size-d);
+  --type-hero-headline-size:     var(--type-hero-headline-size-d);
+  --type-hero-subhead-size:      var(--type-hero-subhead-size-d);
+  --type-hero-meta-size:         var(--type-hero-meta-size-d);
+  --type-cta-btn-size:           var(--type-cta-btn-size-d);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --type-nav-link-size:        var(--type-nav-link-size-m);
+    --type-hero-headline-size:   var(--type-hero-headline-size-m);
+    --type-hero-subhead-size:    var(--type-hero-subhead-size-m);
+    --type-hero-meta-size:       var(--type-hero-meta-size-m);
+    --type-cta-btn-size:         var(--type-cta-btn-size-m);
+  }
 }
 
 /* ================================================================
