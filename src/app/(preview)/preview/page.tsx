@@ -1,5 +1,5 @@
 /**
- * app/preview/page.tsx
+ * app/(preview)/preview/page.tsx
  * Server Component rendered inside the type-lab preview iframes.
  * No interaction here -- the outer ControlPanel pushes CSS var
  * overrides to this document via postMessage, which a thin client

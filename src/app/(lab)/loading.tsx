@@ -1,6 +1,6 @@
 /**
  * loading.tsx
- * Root loading state.
+ * Root loading state for the lab route group.
  */
 
 export default function Loading() {

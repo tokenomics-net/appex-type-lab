@@ -314,6 +314,12 @@
   padding: 0;
 }
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
@@ -324,6 +330,12 @@ body {
   background-color: var(--ax-fortress);
   color: var(--ax-text-primary);
   font-family: var(--font-body-family);
+}
+
+/* Lab root: overflow hidden so the split-pane layout never scrolls the
+   outer shell. Applied via className on (lab)/layout.tsx <body>. */
+body.lab-body {
+  overflow: hidden;
 }
 
 /* ================================================================

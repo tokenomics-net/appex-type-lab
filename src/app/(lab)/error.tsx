@@ -1,7 +1,7 @@
 "use client";
 /**
  * error.tsx
- * Root error boundary.
+ * Root error boundary for the lab route group.
  * "use client" required by Next.js error boundary convention.
  */
 

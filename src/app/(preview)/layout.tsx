@@ -1,9 +1,13 @@
 /**
- * app/preview/layout.tsx
- * Minimal layout for the preview iframe route.
- * Loads the same fonts as the root layout so the iframe has identical
- * typeface rendering. Body overflow is default (scrollable) so the
- * iframe's scrollbar handles content taller than the visible area.
+ * app/(preview)/layout.tsx
+ * Root layout for the preview iframe route group.
+ * Owns its own <html> and <body> via Next.js route groups with multiple
+ * root layouts. This eliminates the hydration mismatch caused by a nested
+ * layout re-rendering <html>/<body> under the old single root layout.
+ *
+ * Loads the same fonts as (lab)/layout.tsx so the iframe has identical
+ * typeface rendering. Body reset is handled by globals.css -- no inline
+ * style on <body> to avoid React 19 shorthand-to-longhand normalization.
  */
 
 import localFont from "next/font/local";
@@ -35,10 +39,10 @@ const hubotSans = localFont({
   fallback: ["system-ui", "sans-serif"],
 });
 
-export default function PreviewLayout({ children }: { children: React.ReactNode }) {
+export default function PreviewRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${tektur.variable} ${hubotSans.variable}`}>
-      <body style={{ margin: 0, padding: 0 }}>
+      <body>
         {children}
       </body>
     </html>
