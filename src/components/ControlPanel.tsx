@@ -30,43 +30,64 @@ const PANEL_STYLES = `
     color: rgba(255,255,255,0.82);
   }
 
+  /* Two-line row per role.
+     Line 1: label + live value readout.
+     Line 2: slider + px input + color swatch.
+  */
   .cp-role {
-    display: grid;
-    grid-template-columns: 120px 1fr auto auto 36px;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 0;
+    padding: 14px 0;
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
   .cp-role:last-child { border-bottom: none; }
 
+  /* Line 1 */
+  .cp-role__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
   .cp-label {
     font-size: 12px;
     font-weight: 600;
     color: rgba(255,255,255,0.88);
     white-space: nowrap;
   }
+  .cp-value-readout {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(254,214,7,0.65);
+    white-space: nowrap;
+  }
+
+  /* Line 2 */
+  .cp-role__controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
   .cp-slider {
     -webkit-appearance: none;
-    height: 4px;
-    border-radius: 2px;
+    flex: 1 1 auto;
+    height: 6px;
+    border-radius: 3px;
     background: rgba(255,255,255,0.12);
     outline: none;
     cursor: pointer;
-    width: 100%;
+    min-width: 0;
   }
   .cp-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: #FED607;
     cursor: pointer;
   }
   .cp-slider::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: #FED607;
     cursor: pointer;
@@ -74,18 +95,13 @@ const PANEL_STYLES = `
   }
 
   /* Editable px number input */
-  .cp-px-input-wrap {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    white-space: nowrap;
-  }
   .cp-px-input {
     width: 52px;
-    padding: 2px 4px;
+    flex-shrink: 0;
+    padding: 4px 6px;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 3px;
+    border-radius: 4px;
     color: rgba(255,255,255,0.88);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
@@ -100,34 +116,21 @@ const PANEL_STYLES = `
     border-color: rgba(254,214,7,0.5);
     background: rgba(254,214,7,0.06);
   }
-  .cp-px-suffix {
-    font-size: 11px;
-    color: rgba(255,255,255,0.45);
-  }
-
-  /* Muted rem readout */
-  .cp-rem-val {
-    font-size: 10px;
-    color: rgba(255,255,255,0.32);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    min-width: 70px;
-    text-align: left;
-  }
 
   .cp-color {
     -webkit-appearance: none;
-    width: 36px;
-    height: 28px;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
     border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 4px;
+    border-radius: 5px;
     padding: 2px;
     background: transparent;
     cursor: pointer;
   }
   .cp-color::-webkit-color-swatch-wrapper { padding: 0; }
-  .cp-color::-webkit-color-swatch { border: none; border-radius: 2px; }
-  .cp-color::-moz-color-swatch { border: none; border-radius: 2px; }
+  .cp-color::-webkit-color-swatch { border: none; border-radius: 3px; }
+  .cp-color::-moz-color-swatch { border: none; border-radius: 3px; }
 `;
 
 export function ControlPanel() {
@@ -194,21 +197,25 @@ export function ControlPanel() {
 
         return (
           <div key={role.id} className="cp-role">
-            <span className="cp-label">{role.label}</span>
+            {/* Line 1: label + live value readout */}
+            <div className="cp-role__header">
+              <span className="cp-label">{role.label}</span>
+              <span className="cp-value-readout">{cur.size}px / {remDisplay}rem</span>
+            </div>
 
-            <input
-              type="range"
-              className="cp-slider"
-              min={minSize}
-              max={maxSize}
-              step={1}
-              value={cur.size}
-              onChange={(e) => updateSize(role.id, parseInt(e.target.value, 10))}
-              aria-label={`${role.label} size`}
-            />
+            {/* Line 2: slider + px input + color swatch */}
+            <div className="cp-role__controls">
+              <input
+                type="range"
+                className="cp-slider"
+                min={minSize}
+                max={maxSize}
+                step={1}
+                value={cur.size}
+                onChange={(e) => updateSize(role.id, parseInt(e.target.value, 10))}
+                aria-label={`${role.label} size`}
+              />
 
-            {/* Editable px input -- synced with slider */}
-            <div className="cp-px-input-wrap">
               <input
                 type="number"
                 className="cp-px-input"
@@ -229,19 +236,15 @@ export function ControlPanel() {
                 }}
                 aria-label={`${role.label} size in px`}
               />
-              <span className="cp-px-suffix">px</span>
+
+              <input
+                type="color"
+                className="cp-color"
+                value={cur.color}
+                onChange={(e) => updateColor(role.id, e.target.value)}
+                aria-label={`${role.label} color`}
+              />
             </div>
-
-            {/* Muted rem readout */}
-            <span className="cp-rem-val">≈ {remDisplay}rem</span>
-
-            <input
-              type="color"
-              className="cp-color"
-              value={cur.color}
-              onChange={(e) => updateColor(role.id, e.target.value)}
-              aria-label={`${role.label} color`}
-            />
           </div>
         );
       })}
