@@ -59,6 +59,20 @@ const SHELL_STYLES = `
     flex-shrink: 0;
   }
 
+  /* Baseline badge -- indicates the slider defaults match the live site */
+  .lab-topbar__baseline-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(254,214,7,0.7);
+    border: 1px solid rgba(254,214,7,0.25);
+    border-radius: 3px;
+    padding: 2px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   /* Toggle group */
   .lab-toggle {
     display: flex;
@@ -251,6 +265,7 @@ export function LabShell() {
       {/* Top bar: sticky, Mobile/Desktop toggle, Reset, Copy CSS */}
       <div className="lab-topbar">
         <span className="lab-topbar__title">appeX Type Lab</span>
+        <span className="lab-topbar__baseline-badge">Baseline = live site</span>
 
         {/* Mobile / Desktop toggle */}
         <div className="lab-toggle" role="group" aria-label="Viewport">

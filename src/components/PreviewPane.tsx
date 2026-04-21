@@ -61,8 +61,10 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
     obs.observe(root, { attributes: true, attributeFilter: ["style"] });
 
     function onLoad(this: HTMLIFrameElement) {
+      // Always send -- even if cssText is empty. The iframe's inline init
+      // script already applied baseline vars on first paint; this message
+      // will sync any ControlPanel values set before the iframe loaded.
       const cssText = root.style.cssText;
-      if (!cssText) return;
       try {
         this.contentWindow?.postMessage({ type: "CSS_VARS", cssText }, window.location.origin);
       } catch { /* noop */ }
@@ -71,11 +73,12 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
     // PreviewVarReceiver sends CSS_VARS_REQUEST on mount (after hydration) to
     // cover the race condition where the initial postMessage arrived before the
     // iframe's useEffect registered its listener. Respond with current cssText.
+    // Always respond -- even with empty cssText -- so PreviewVarReceiver can
+    // call resolveBreakpointVars() and confirm the breakpoint alias is correct.
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
       if (!event.data || event.data.type !== "CSS_VARS_REQUEST") return;
       const cssText = root.style.cssText;
-      if (!cssText) return;
       try {
         iframeRef.current?.contentWindow?.postMessage(
           { type: "CSS_VARS", cssText },

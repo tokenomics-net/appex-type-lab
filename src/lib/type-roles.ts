@@ -13,6 +13,11 @@
  *
  *   hero-headline: desktop=96px (1280 viewport), mobile=56px (390 viewport)
  *     selector: .hero-bleed__h1
+ *     NOTE: live site uses clamp(56px, 7.5vw, 112px). At 1280px this resolves
+ *     to 96px (7.5vw=96). At 1440px it resolves to 108px. The lab uses a fixed
+ *     96px baseline (the 1280px design point). This is intentional -- the lab
+ *     tests type at a fixed size, not a viewport-relative clamp. A 12px delta
+ *     at 1440px is expected behavior, not drift.
  *     color: rgba(255, 255, 255, 0.92) => #E8EAF0 (blended approx for picker)
  *
  *   hero-subhead: desktop=18px, mobile=15px
