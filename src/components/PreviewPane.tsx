@@ -4,21 +4,24 @@
  * "use client" justified: MutationObserver to mirror CSS var changes into
  * the iframe and iframe ref require browser APIs.
  *
- * One iframe only. Viewport prop (mobile | desktop) controls the iframe
- * width: 390px for Mobile, 1280px for Desktop. No scale transform ever --
- * the iframe renders at its native pixel dimensions so font sizes are TRUE
- * to the slider values.
+ * One iframe only. Viewport prop (mobile | desktop) controls rendering:
+ *
+ *   Desktop: iframe fills 100% of the pane width. No fixed px cap, no
+ *     margin: 0 auto. Pane width = browser width minus panel (400px).
+ *     On a 1920px monitor the iframe is ~1520px wide. On 1280px it is
+ *     ~880px wide. No right-side gap. No horizontal scroll inside the pane.
+ *     Font sizes stay true to slider values because we normalised all type
+ *     to fixed px vars (no clamp/vw); iframe width does not affect rendering.
+ *
+ *   Mobile: iframe is fixed 390px, centered with margin: 0 auto. The dead
+ *     space left and right of the 390px window is styled as an intentional
+ *     phone-frame: darker dotted background + 1px border on the iframe.
  *
  * Scroll design:
- *   The PreviewPane component fills its parent (.lab-preview) which has:
- *     flex: 1 1 0; min-width: 0; overflow-x: auto
- *
- *   This component's outer div uses height: 100% to fill the flex column.
- *   The iframe-wrap div is sized to exactly the iframe's native width
- *   (min-width: max-content), so when the pane is narrower than the iframe,
- *   the pane's overflow-x: auto kicks in and scrolls horizontally.
- *   The BODY never scrolls horizontally. The outer page never shows a
- *   horizontal scrollbar. Only the preview pane scrolls sideways.
+ *   Desktop: iframe = 100% of pane width, so horizontal scroll is never
+ *     needed. Pane overflow-x: auto is still set but never triggers.
+ *   Mobile: horizontal scroll only triggers if the pane is narrower than
+ *     390px (very rare); handled by the parent .lab-preview overflow-x: auto.
  *
  * CSS var bridge: MutationObserver watches document.documentElement.style
  * for changes set by ControlPanel via setProperty. On change it posts
@@ -29,10 +32,7 @@ import { useEffect, useRef } from "react";
 
 type Viewport = "mobile" | "desktop";
 
-const VIEWPORT_WIDTH: Record<Viewport, number> = {
-  mobile:  390,
-  desktop: 1280,
-};
+const MOBILE_WIDTH = 390;
 
 interface PreviewPaneProps {
   viewport: Viewport;
@@ -41,7 +41,7 @@ interface PreviewPaneProps {
 export function PreviewPane({ viewport }: PreviewPaneProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const targetWidth = VIEWPORT_WIDTH[viewport];
+  const isMobile = viewport === "mobile";
 
   // CSS var bridge: mirror outer :root inline style to the iframe
   useEffect(() => {
@@ -107,22 +107,23 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
     } catch { /* noop */ }
   }, [viewport]);
 
-  const label = viewport === "mobile" ? "Mobile -- 390px" : "Desktop -- 1280px";
+  const label = isMobile ? "Mobile -- 390px" : "Desktop -- fills pane";
 
   return (
     /*
      * Outer div: fills the .lab-preview flex cell completely.
-     * height: 100% is important -- without it the flex child collapses to 0
-     * height when the columns are side-by-side and nothing forces a height.
-     * min-height: 100vh ensures the pane is always at least one screen tall
-     * even if the parent flex row isn't tall enough yet.
+     * Desktop: background #060a14, iframe is 100% width, no gaps.
+     * Mobile: background slightly darker with dot pattern so the dead
+     *   space flanking the 390px iframe reads as intentional phone-frame.
      */
     <div
       style={{
-        display:    "flex",
+        display:       "flex",
         flexDirection: "column",
-        minHeight:  "100vh",
-        background: "#060a14",
+        minHeight:     "100vh",
+        background:    isMobile
+          ? "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 20px 20px #04070f"
+          : "#060a14",
       }}
     >
       {/* Viewport label */}
@@ -143,39 +144,41 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
       </div>
 
       {/*
-        Iframe scroll wrapper:
-          - width: fit-content   makes this div exactly as wide as its child
-                                 (the iframe). When the parent (.lab-preview)
-                                 has overflow-x: auto + min-width: 0, a
-                                 fit-content child that is wider than the pane
-                                 triggers the horizontal scroll on the PANE,
-                                 not on the body.
-          - flex: 1 1 auto       grows vertically to fill the pane
-          - min-width: {targetWidth}px explicitly sets the floor so the div
-                                 never collapses below the iframe width
-          - margin: 0 auto       centers the iframe horizontally when the pane
-                                 is WIDER than the iframe (e.g. browser at 1920px,
-                                 panel 400px, preview ~1520px, iframe 1280px).
-                                 Dead space is split evenly left and right.
-                                 When the pane is narrower than the iframe,
-                                 overflow-x: auto on .lab-preview scrolls the pane
-                                 as before -- auto margins have no effect in that case.
+        Desktop wrapper:
+          - width: 100%        fills the entire pane with no gaps
+          - flex: 1 1 auto     grows vertically
+          - no margin: 0 auto  not needed when width is 100%
+          - no max-width cap   fills to 2560px if the pane is that wide
+
+        Mobile wrapper:
+          - width: 390px       fixed phone width
+          - min-width: 390px   never collapses below phone width
+          - margin: 0 auto     centers the 390px window in the pane
+          - padding: 16px 0    breathing room above/below the iframe
       */}
       <div
-        style={{
-          width:    `${targetWidth}px`,
-          flex:     "1 1 auto",
-          minWidth: `${targetWidth}px`,
-          margin:   "0 auto",
-        }}
+        style={
+          isMobile
+            ? {
+                width:    `${MOBILE_WIDTH}px`,
+                minWidth: `${MOBILE_WIDTH}px`,
+                flex:     "1 1 auto",
+                margin:   "0 auto",
+                padding:  "16px 0",
+              }
+            : {
+                width:    "100%",
+                flex:     "1 1 auto",
+              }
+        }
       >
         <iframe
           ref={iframeRef}
           src="/preview"
-          width={targetWidth}
           style={{
-            border:    "none",
+            border:    isMobile ? "1px solid rgba(255,255,255,0.12)" : "none",
             display:   "block",
+            width:     isMobile ? `${MOBILE_WIDTH}px` : "100%",
             height:    "100dvh",
             minHeight: "600px",
           }}
