@@ -352,7 +352,7 @@ export function HeroSection(): React.JSX.Element {
         <div className="hero-bleed__hairline" aria-hidden="true" />
 
         <Image
-          src="/images/r22-appex-token-edited-transparent.webp"
+          src="/images/r22-appex-token-bright-transparent.webp"
           alt="appeX token with logomark"
           width={550}
           height={400}
@@ -364,7 +364,7 @@ export function HeroSection(): React.JSX.Element {
         <div className="hero-bleed__grid">
           <div className="hero-bleed__content">
             <Image
-              src="/images/r22-appex-token-edited-transparent.webp"
+              src="/images/r22-appex-token-bright-transparent.webp"
               alt="appeX token with logomark"
               width={250}
               height={250}
