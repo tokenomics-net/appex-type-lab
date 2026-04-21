@@ -1,22 +1,16 @@
 /**
  * app/(preview)/preview/page.tsx
- * Server Component rendered inside the type-lab preview iframes.
- * No interaction here -- the outer ControlPanel pushes CSS var
- * overrides to this document via postMessage, which a thin client
- * listener applies to :root.
+ * Server Component rendered inside the type-lab preview iframe.
+ * Renders only the SiteHeader and HeroSection -- the above-fold view.
+ * Token section, Stakeholders, and Footer are excluded.
  *
- * This route is loaded inside two iframes (width=390 and width=1280).
- * The iframe viewport width is what @media queries evaluate against,
- * so mobile layout triggers correctly at 390px regardless of the
- * outer browser window size.
+ * CSS var overrides from the outer ControlPanel are applied via
+ * postMessage by PreviewVarReceiver.
  */
 
-import { SiteHeader }              from "@/components/layout/SiteHeader";
-import { SiteFooter }              from "@/components/layout/SiteFooter";
-import { HeroSection }             from "@/components/home/HeroSection";
-import { TokenSection }            from "@/components/home/TokenSection";
-import { ForStakeholdersSection }  from "@/components/home/ForStakeholdersSection";
-import { PreviewVarReceiver }      from "./PreviewVarReceiver";
+import { SiteHeader }       from "@/components/layout/SiteHeader";
+import { HeroSection }      from "@/components/home/HeroSection";
+import { PreviewVarReceiver } from "./PreviewVarReceiver";
 
 export default function PreviewPage() {
   return (
@@ -27,10 +21,7 @@ export default function PreviewPage() {
       <SiteHeader />
       <main id="main" tabIndex={-1} style={{ outline: "none" }}>
         <HeroSection />
-        <TokenSection />
-        <ForStakeholdersSection />
       </main>
-      <SiteFooter />
     </>
   );
 }

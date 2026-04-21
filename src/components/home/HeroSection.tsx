@@ -1,9 +1,17 @@
 /**
  * HeroSection.tsx
  * Ported from website-v2 exactly. Server Component.
- * Typography: all hardcoded font-size / font-weight / line-height /
- * letter-spacing replaced with var(--type-*) CSS variable references.
- * Animations and layout are untouched.
+ *
+ * Typography variables updated to match the simplified role IDs:
+ *   --type-hero-headline-size  -> --type-hero-headline-size  (same)
+ *   --type-hero-subhead-size   -> --type-hero-subhead-size   (same)
+ *   --type-hero-meta-size      -> --type-hero-meta-size      (same)
+ *   --type-btn-primary-size    -> --type-cta-btn-size        (renamed)
+ *   color vars updated to --color-{roleId}
+ *
+ * Font-size parity fix: all clamp() expressions and @media font-size
+ * overrides replaced with single fixed values. Layout-only @media rules
+ * (padding, display, column stacking) are preserved.
  */
 
 import Image from "next/image";
@@ -189,14 +197,18 @@ export function HeroSection(): React.JSX.Element {
           }
         }
 
-        /* H1: font-size driven by --type-hero-headline-size */
+        /*
+          H1: font-size driven by --type-hero-headline-size.
+          Single fixed value -- no clamp, no @media font-size override.
+          The preview width shrinks; the font does not.
+        */
         .hero-bleed__h1 {
           font-family: var(--font-display-family);
           font-size: var(--type-hero-headline-size);
-          font-weight: var(--type-hero-headline-weight);
-          line-height: var(--type-hero-headline-line-height);
-          letter-spacing: var(--type-hero-headline-letter-spacing);
-          color: var(--color-primary-text);
+          font-weight: 400;
+          line-height: 1.15;
+          letter-spacing: 0em;
+          color: var(--color-hero-headline);
           margin: 0 0 24px 0;
         }
 
@@ -230,24 +242,30 @@ export function HeroSection(): React.JSX.Element {
           }
         }
 
+        /*
+          Subhead: single fixed font-size, no clamp.
+        */
         .hero-bleed__subhead {
           font-family: var(--font-body-family);
           font-size: var(--type-hero-subhead-size);
-          font-weight: var(--type-hero-subhead-weight);
-          line-height: var(--type-hero-subhead-line-height);
-          letter-spacing: var(--type-hero-subhead-letter-spacing);
-          color: var(--color-secondary-text);
+          font-weight: 400;
+          line-height: 1.6;
+          letter-spacing: 0em;
+          color: var(--color-hero-subhead);
           margin: 0 0 12px 0;
           max-width: 520px;
         }
 
+        /*
+          Meta line: single fixed font-size, no clamp.
+        */
         .hero-bleed__meta {
           font-family: var(--font-mono-family);
           font-size: var(--type-hero-meta-size);
-          font-weight: var(--type-hero-meta-weight);
-          line-height: var(--type-hero-meta-line-height);
-          letter-spacing: var(--type-hero-meta-letter-spacing);
-          color: var(--ax-capital-yellow);
+          font-weight: 400;
+          line-height: 1.4;
+          letter-spacing: 0.05em;
+          color: var(--color-hero-meta);
           opacity: 0.65;
           margin: 0 0 40px 0;
         }
@@ -273,7 +291,7 @@ export function HeroSection(): React.JSX.Element {
           height: 36px;
           border-radius: 50%;
           border: 1px solid rgba(255,255,255,0.15);
-          color: var(--color-secondary-text);
+          color: var(--color-hero-subhead);
           transition: color 250ms ease, border-color 250ms ease, background 250ms ease;
         }
 
@@ -303,6 +321,16 @@ export function HeroSection(): React.JSX.Element {
             opacity: 1;
             transform: none;
           }
+        }
+
+        /*
+          CTA button: overrides the global .ax-btn--primary font-size
+          with the lab-controlled --type-cta-btn-size variable.
+          Single fixed value -- no clamp.
+        */
+        .hero-bleed__cta-override {
+          font-size: var(--type-cta-btn-size) !important;
+          color: var(--color-cta-btn) !important;
         }
       `}</style>
 
@@ -360,12 +388,7 @@ export function HeroSection(): React.JSX.Element {
             <p className="hero-bleed__meta">$APPEX | Liquidity at every settlement</p>
 
             <div className="hero-bleed__ctas">
-              <a href="/protocol" className="ax-btn--primary" style={{
-                fontSize: "var(--type-btn-primary-size)",
-                fontWeight: "var(--type-btn-primary-weight)" as unknown as number,
-                lineHeight: "var(--type-btn-primary-line-height)" as unknown as number,
-                letterSpacing: "var(--type-btn-primary-letter-spacing)",
-              }}>
+              <a href="/protocol" className="ax-btn--primary hero-bleed__cta-override">
                 See how the protocol works
               </a>
               <div className="hero-bleed__socials-inline">
