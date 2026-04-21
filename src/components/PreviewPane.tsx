@@ -2,109 +2,37 @@
 /**
  * PreviewPane.tsx
  * "use client" justified: tab switching state, ResizeObserver for
- * responsive fallback, and dynamic preview width logic all require
- * browser APIs.
+ * responsive fallback, MutationObserver to mirror CSS var changes
+ * into the iframe documents, and iframe refs all require browser APIs.
  *
- * Renders side-by-side mobile (390px) and desktop (1280px) preview columns.
- * On narrow screens (<1100px lab width) falls back to Mobile | Desktop tabs.
+ * Fix: scaled divs caused @media queries to evaluate against the outer
+ * browser viewport, not the preview width. Replaced with iframes --
+ * each iframe has its own document and viewport, so @media (max-width: 767px)
+ * triggers correctly at 390px regardless of outer window size.
  *
- * Both previews are scaled divs with overflow:auto. CSS vars applied to
- * :root flow into the ported components automatically -- no re-render needed.
+ * CSS var bridge: MutationObserver watches document.documentElement.style
+ * for changes (set by ControlPanel via setProperty). On change it posts
+ * { type: "CSS_VARS", cssText } to both iframes. PreviewVarReceiver inside
+ * each iframe applies the properties to its own :root.
  */
 
 import { useState, useEffect, useRef } from "react";
-import { SiteHeader } from "@/components/layout/SiteHeader";
-import { SiteFooter } from "@/components/layout/SiteFooter";
-import { HeroSection } from "@/components/home/HeroSection";
-import { TokenSection } from "@/components/home/TokenSection";
-import { ForStakeholdersSection } from "@/components/home/ForStakeholdersSection";
 
 type Tab = "mobile" | "desktop";
 
-function PreviewContent() {
-  return (
-    <>
-      <SiteHeader />
-      <main id="main" tabIndex={-1} style={{ outline: "none" }}>
-        <HeroSection />
-        <TokenSection />
-        <ForStakeholdersSection />
-      </main>
-      <SiteFooter />
-    </>
-  );
-}
-
-function ScaledPreview({ targetWidth, label }: { targetWidth: number; label: string }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const obs = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const available = entry.contentRect.width;
-        setScale(Math.min(1, available / targetWidth));
-      }
-    });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [targetWidth]);
-
-  return (
-    <div
-      style={{
-        display:       "flex",
-        flexDirection: "column",
-        flex:          targetWidth >= 1280 ? "1 1 0" : "0 0 auto",
-        minWidth:      0,
-      }}
-    >
-      <div
-        style={{
-          fontSize:        "11px",
-          color:           "rgba(255,255,255,0.45)",
-          textAlign:       "center",
-          padding:         "6px 0",
-          fontFamily:      "system-ui, sans-serif",
-          letterSpacing:   "0.08em",
-          textTransform:   "uppercase",
-          borderBottom:    "1px solid rgba(255,255,255,0.06)",
-          flexShrink:      0,
-        }}
-      >
-        {label} &mdash; {targetWidth}px
-      </div>
-      <div
-        ref={wrapRef}
-        style={{
-          flex:      "1 1 auto",
-          overflow:  "hidden",
-          position:  "relative",
-        }}
-      >
-        <div
-          style={{
-            width:           `${targetWidth}px`,
-            transformOrigin: "top left",
-            transform:       `scale(${scale})`,
-            height:          `${100 / scale}%`,
-            overflow:        "auto",
-          }}
-        >
-          <PreviewContent />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function PreviewPane({ panelWidth: _panelWidth }: { panelWidth: number }) {
-  const [activeTab, setActiveTab] = useState<Tab>("desktop");
-  const [narrow, setNarrow]       = useState(false);
-  const containerRef              = useRef<HTMLDivElement>(null);
+  const [activeTab,   setActiveTab]   = useState<Tab>("desktop");
+  const [narrow,      setNarrow]      = useState(false);
+  const containerRef                  = useRef<HTMLDivElement>(null);
+  const mobileRef                     = useRef<HTMLIFrameElement>(null);
+  const desktopRef                    = useRef<HTMLIFrameElement>(null);
 
+  // Scale the mobile iframe column to fit its container width
+  const mobileColRef  = useRef<HTMLDivElement>(null);
+  const [mobileScale, setMobileScale] = useState(1);
+
+  // ---- Narrow breakpoint detection ----
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -115,6 +43,62 @@ export function PreviewPane({ panelWidth: _panelWidth }: { panelWidth: number })
     });
     obs.observe(el);
     return () => obs.disconnect();
+  }, []);
+
+  // ---- Scale mobile column to fit available width ----
+  useEffect(() => {
+    const el = mobileColRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const available = entry.contentRect.width;
+        setMobileScale(Math.min(1, available / 390));
+      }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // ---- CSS var bridge: mirror outer :root inline style to both iframes ----
+  useEffect(() => {
+    const root = document.documentElement;
+
+    function postVarsToIframes() {
+      const cssText = root.style.cssText;
+      const msg = { type: "CSS_VARS", cssText };
+      for (const ref of [mobileRef, desktopRef]) {
+        try {
+          ref.current?.contentWindow?.postMessage(msg, window.location.origin);
+        } catch {
+          // iframe may not be loaded yet; next change will retry
+        }
+      }
+    }
+
+    // Watch for any inline style change on documentElement (ControlPanel
+    // calls setProperty on it for every slider move).
+    const obs = new MutationObserver(postVarsToIframes);
+    obs.observe(root, { attributes: true, attributeFilter: ["style"] });
+
+    // Also re-send when iframes finish loading so initial state is applied
+    function onIframeLoad(this: HTMLIFrameElement) {
+      const cssText = root.style.cssText;
+      if (!cssText) return;
+      try {
+        this.contentWindow?.postMessage({ type: "CSS_VARS", cssText }, window.location.origin);
+      } catch { /* noop */ }
+    }
+
+    const mobile  = mobileRef.current;
+    const desktop = desktopRef.current;
+    mobile?.addEventListener("load", onIframeLoad);
+    desktop?.addEventListener("load", onIframeLoad);
+
+    return () => {
+      obs.disconnect();
+      mobile?.removeEventListener("load", onIframeLoad);
+      desktop?.removeEventListener("load", onIframeLoad);
+    };
   }, []);
 
   return (
@@ -192,12 +176,137 @@ export function PreviewPane({ panelWidth: _panelWidth }: { panelWidth: number })
 
       <div className="preview-cols">
         {(!narrow || activeTab === "mobile") && (
-          <ScaledPreview targetWidth={390} label="Mobile" />
+          <div
+            ref={mobileColRef}
+            style={{
+              display:       "flex",
+              flexDirection: "column",
+              flex:          "0 0 auto",
+              minWidth:      0,
+              // Column width: scaled 390px
+              width:         `${390 * mobileScale}px`,
+            }}
+          >
+            <div
+              style={{
+                fontSize:       "11px",
+                color:          "rgba(255,255,255,0.45)",
+                textAlign:      "center",
+                padding:        "6px 0",
+                fontFamily:     "system-ui, sans-serif",
+                letterSpacing:  "0.08em",
+                textTransform:  "uppercase",
+                borderBottom:   "1px solid rgba(255,255,255,0.06)",
+                flexShrink:     0,
+              }}
+            >
+              Mobile &mdash; 390px
+            </div>
+            <div
+              style={{
+                flex:     "1 1 auto",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <iframe
+                ref={mobileRef}
+                src="/preview"
+                width={390}
+                style={{
+                  border:          "none",
+                  height:          "100%",
+                  display:         "block",
+                  transformOrigin: "top left",
+                  transform:       `scale(${mobileScale})`,
+                  // Maintain visual height after scale
+                  // When scaled down, the iframe's rendered height shrinks
+                  // visually. We compensate by expanding the frame height.
+                  ...(mobileScale < 1 ? { height: `${100 / mobileScale}%` } : {}),
+                }}
+                title="Mobile preview"
+                scrolling="yes"
+              />
+            </div>
+          </div>
         )}
         {(!narrow || activeTab === "desktop") && (
-          <ScaledPreview targetWidth={1280} label="Desktop" />
+          <div
+            style={{
+              display:       "flex",
+              flexDirection: "column",
+              flex:          "1 1 0",
+              minWidth:      0,
+            }}
+          >
+            <div
+              style={{
+                fontSize:       "11px",
+                color:          "rgba(255,255,255,0.45)",
+                textAlign:      "center",
+                padding:        "6px 0",
+                fontFamily:     "system-ui, sans-serif",
+                letterSpacing:  "0.08em",
+                textTransform:  "uppercase",
+                borderBottom:   "1px solid rgba(255,255,255,0.06)",
+                flexShrink:     0,
+              }}
+            >
+              Desktop &mdash; 1280px
+            </div>
+            <div
+              style={{
+                flex:     "1 1 auto",
+                overflow: "auto",
+                position: "relative",
+              }}
+            >
+              <DesktopIframeScaled iframeRef={desktopRef} />
+            </div>
+          </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * DesktopIframeScaled
+ * Scales the 1280px-wide desktop iframe to fit its container column.
+ * Uses its own ResizeObserver so the scale tracks the column width.
+ */
+function DesktopIframeScaled({ iframeRef }: { iframeRef: React.RefObject<HTMLIFrameElement | null> }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setScale(Math.min(1, entry.contentRect.width / 1280));
+      }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative" }}>
+      <iframe
+        ref={iframeRef}
+        src="/preview"
+        width={1280}
+        style={{
+          border:          "none",
+          display:         "block",
+          transformOrigin: "top left",
+          transform:       `scale(${scale})`,
+          height:          scale < 1 ? `${100 / scale}%` : "100%",
+        }}
+        title="Desktop preview"
+        scrolling="yes"
+      />
     </div>
   );
 }
