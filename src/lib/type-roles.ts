@@ -40,7 +40,7 @@ export const TYPE_ROLES: TypeRole[] = [
   },
   {
     id: "hero-meta",
-    label: "Hero meta line",
+    label: "Yellow tagline line",
     baseline: { size: 12, color: "#FED607" },
   },
   {

@@ -2,19 +2,20 @@
 /**
  * PreviewPane.tsx
  * "use client" justified: MutationObserver to mirror CSS var changes into
- * the iframe, ResizeObserver for scale computation, and iframe ref all
- * require browser APIs.
+ * the iframe and iframe ref require browser APIs.
  *
  * One iframe only. Viewport prop (mobile | desktop) controls the iframe
- * width: 390px or 1280px. The LabShell owns the toggle; this component
- * receives viewport as a prop and scales accordingly.
+ * width: 390px for Mobile, 1280px for Desktop. No scale transform ever --
+ * the iframe renders at its native pixel dimensions so font sizes are TRUE
+ * to the slider values. The wrapper scrolls (overflow: auto) when the
+ * browser window is narrower than the iframe's native width.
  *
  * CSS var bridge: MutationObserver watches document.documentElement.style
  * for changes set by ControlPanel via setProperty. On change it posts
  * { type: "CSS_VARS", cssText } to the iframe. PreviewVarReceiver applies it.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 type Viewport = "mobile" | "desktop";
 
@@ -29,23 +30,8 @@ interface PreviewPaneProps {
 
 export function PreviewPane({ viewport }: PreviewPaneProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const wrapRef   = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
 
   const targetWidth = VIEWPORT_WIDTH[viewport];
-
-  // Scale the iframe to fit the available container width
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const obs = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setScale(Math.min(1, entry.contentRect.width / targetWidth));
-      }
-    });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [targetWidth]);
 
   // CSS var bridge: mirror outer :root inline style to the iframe
   useEffect(() => {
@@ -109,21 +95,23 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
         {label}
       </div>
 
-      {/* Iframe wrapper -- scales the iframe to fit available width */}
+      {/*
+        Iframe wrapper -- overflow: auto so the pane scrolls when the browser
+        window is narrower than the iframe's native width. No scale transform.
+        The iframe renders at its true pixel dimensions (390 or 1280) always.
+      */}
       <div
-        ref={wrapRef}
-        style={{ flex: "1 1 auto", overflow: "hidden", position: "relative" }}
+        style={{ flex: "1 1 auto", overflow: "auto" }}
       >
         <iframe
           ref={iframeRef}
           src="/preview"
           width={targetWidth}
           style={{
-            border:          "none",
-            display:         "block",
-            transformOrigin: "top left",
-            transform:       `scale(${scale})`,
-            height:          scale < 1 ? `${100 / scale}%` : "100%",
+            border:   "none",
+            display:  "block",
+            height:   "100%",
+            minHeight: "100vh",
           }}
           title="Site preview"
           scrolling="yes"
