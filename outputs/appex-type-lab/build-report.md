@@ -188,3 +188,72 @@ All 12 checks from the Slider Fix update (ff6feec) confirmed preserved:
 ### No Surprises
 
 The topbar at 390px required a minor additional `@media (max-width: 500px)` condensing rule (smaller font sizes, tighter padding) to prevent topbar overflow at phone widths. This was not present in the original design but is required for correctness at that breakpoint. All other logic is untouched.
+
+---
+
+## Update: Desktop-Fill + Mobile-Frame
+
+**Commit:** `e23bf63` -- fix: desktop preview fills pane, mobile preview framed -- no more gap or squeeze
+**Date:** 2026-04-20
+
+### Root Cause
+
+The Desktop iframe was hardcoded at `width: 1280px` with `margin: 0 auto` on its wrapper div. This produced two symptoms:
+
+- **Monitors wider than ~1680px (1920, 2560):** Preview pane was ~1520px wide; 1280px iframe centered inside it left 120px of dead space on the right. Playwright measurement confirmed `gap_right=120px` at 1920.
+- **Monitors narrower than 1680px (1440, 1280, 1100):** 1280px iframe was wider than the available pane, forcing the pane's `overflow-x: auto` to activate and show a horizontal scrollbar inside the preview area. Measurements showed `gap_right=-240px` at 1440, `-400px` at 1280, `-580px` at 1100.
+
+The fix is simple: Desktop iframe has no business being fixed at 1280px. Font sizes are already normalised to fixed px vars (no `clamp`, no `vw`), so iframe width has zero effect on type rendering. Desktop should fill whatever width the pane gives it.
+
+### What Changed
+
+Single file edited: `src/components/PreviewPane.tsx`
+
+**Desktop mode (before):**
+- Wrapper div: `width: 1280px`, `minWidth: 1280px`, `margin: 0 auto`
+- iframe: `width={1280}`
+
+**Desktop mode (after):**
+- Wrapper div: `width: "100%"`, no `margin`
+- iframe: `width: "100%"` (fills wrapper, fills pane, no gaps)
+
+**Mobile mode (unchanged width, added framing):**
+- Wrapper div: `width: 390px`, `minWidth: 390px`, `margin: 0 auto` (same as before)
+- iframe: `width: 390px` (same as before)
+- Outer div background changed to a subtle radial-dot pattern (`#04070f` with 4% white dots at 20px grid) so the dead space flanking the phone-width window reads as intentional phone-frame
+- iframe gets `border: 1px solid rgba(255,255,255,0.12)` to reinforce the phone-frame metaphor
+- Viewport label updated from "Desktop -- 1280px" to "Desktop -- fills pane"
+
+### Before / After Screenshots
+
+| File | Location |
+|------|----------|
+| Before screenshots | `/tmp/lab-qa/v2/before/` |
+| After screenshots | `/tmp/lab-qa/v2/after/` |
+| Before data | `/tmp/lab-qa/v2/before/data.json` |
+| After data | `/tmp/lab-qa/v2/after/data.json` |
+
+Key before/after comparison at 1920 Desktop:
+- Before: `iframe rect left=520 width=1280 right=1800`, `preview rect right=1920`, `gap_right=120px`
+- After: `iframe rect left=400 width=1520 right=1920`, `preview rect right=1920`, `gap_right=0px`
+
+### Verification Table
+
+All 12 scenarios tested with Playwright at actual browser widths. Each row checked for: no body-level horizontal scroll, correct flex-direction (row at >=1024px, column below), and the mode-specific gap assertion.
+
+| Width | Mode | No body hscroll | Layout direction | Gap check | Result |
+|-------|------|-----------------|------------------|-----------|--------|
+| 1920 | Desktop | PASS | row | gap=0 | PASS |
+| 1920 | Mobile | PASS | row | L=565 R=565 framed | PASS |
+| 1440 | Desktop | PASS | row | gap=0 | PASS |
+| 1440 | Mobile | PASS | row | L=325 R=325 framed | PASS |
+| 1280 | Desktop | PASS | row | gap=0 | PASS |
+| 1280 | Mobile | PASS | row | L=245 R=245 framed | PASS |
+| 1100 | Desktop | PASS | row | gap=0 | PASS |
+| 1100 | Mobile | PASS | row | L=155 R=155 framed | PASS |
+| 900 | Desktop | PASS | column (stacked) | gap=0 | PASS |
+| 900 | Mobile | PASS | column (stacked) | L=255 R=255 framed | PASS |
+| 390 | Desktop | PASS | column (stacked) | gap=0 | PASS |
+| 390 | Mobile | PASS | column (stacked) | no-gap check N/A (390=390) | PASS |
+
+Build: 0 errors, 0 warnings. Routes `/` and `/preview` return 200. All slider plumbing, toggles, Reset, Copy CSS, and CSS var bridge preserved unchanged.
