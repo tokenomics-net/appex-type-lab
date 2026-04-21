@@ -9,13 +9,16 @@
  * the iframe renders at its native pixel dimensions so font sizes are TRUE
  * to the slider values.
  *
- * Scroll design (single scrollbar):
- *   - Outer wrapper: overflow-x auto (horizontal scroll when browser is
- *     narrower than the iframe), overflow-y hidden -- the iframe owns
- *     vertical scroll entirely.
- *   - Iframe: height 100% of the wrapper (fills the pane), no minHeight
- *     override that would fight the wrapper's height and create a second
- *     scrollbar. The iframe document scrolls vertically on its own.
+ * Scroll design:
+ *   The PreviewPane component fills its parent (.lab-preview) which has:
+ *     flex: 1 1 0; min-width: 0; overflow-x: auto
+ *
+ *   This component's outer div uses height: 100% to fill the flex column.
+ *   The iframe-wrap div is sized to exactly the iframe's native width
+ *   (min-width: max-content), so when the pane is narrower than the iframe,
+ *   the pane's overflow-x: auto kicks in and scrolls horizontally.
+ *   The BODY never scrolls horizontally. The outer page never shows a
+ *   horizontal scrollbar. Only the preview pane scrolls sideways.
  *
  * CSS var bridge: MutationObserver watches document.documentElement.style
  * for changes set by ControlPanel via setProperty. On change it posts
@@ -27,7 +30,7 @@ import { useEffect, useRef } from "react";
 type Viewport = "mobile" | "desktop";
 
 const VIEWPORT_WIDTH: Record<Viewport, number> = {
-  mobile: 390,
+  mobile:  390,
   desktop: 1280,
 };
 
@@ -108,12 +111,17 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
 
   return (
     /*
-     * Outer wrapper: full width, natural document flow.
-     * No height lock -- the section grows with its content.
+     * Outer div: fills the .lab-preview flex cell completely.
+     * height: 100% is important -- without it the flex child collapses to 0
+     * height when the columns are side-by-side and nothing forces a height.
+     * min-height: 100vh ensures the pane is always at least one screen tall
+     * even if the parent flex row isn't tall enough yet.
      */
     <div
       style={{
-        width:      "100%",
+        display:    "flex",
+        flexDirection: "column",
+        minHeight:  "100vh",
         background: "#060a14",
       }}
     >
@@ -128,6 +136,7 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
           letterSpacing: "0.08em",
           textTransform: "uppercase" as const,
           borderBottom:  "1px solid rgba(255,255,255,0.06)",
+          flexShrink:    0,
         }}
       >
         {label}
@@ -135,20 +144,21 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
 
       {/*
         Iframe scroll wrapper:
-          - overflow-x: auto  -- horizontal scroll when the browser window is
-            narrower than the iframe (e.g. 1280px Desktop on a 1100px monitor)
-          - overflow-y: visible -- the iframe expands to its content height;
-            the outer page scrolls vertically, no double scrollbar
-        The iframe has no explicit height: it sizes to its content via the
-        scrolling="no" + CSS height trick is NOT used here. Instead the iframe
-        renders at a tall fixed height (100dvh) so the user sees a full-page
-        preview. The iframe's own document scrolls internally.
+          - width: fit-content   makes this div exactly as wide as its child
+                                 (the iframe). When the parent (.lab-preview)
+                                 has overflow-x: auto + min-width: 0, a
+                                 fit-content child that is wider than the pane
+                                 triggers the horizontal scroll on the PANE,
+                                 not on the body.
+          - flex: 1 1 auto       grows vertically to fill the pane
+          - min-width: {targetWidth}px explicitly sets the floor so the div
+                                 never collapses below the iframe width
       */}
       <div
         style={{
-          width:     "100%",
-          overflowX: "auto",
-          overflowY: "visible",
+          width:    `${targetWidth}px`,
+          flex:     "1 1 auto",
+          minWidth: `${targetWidth}px`,
         }}
       >
         <iframe
