@@ -1,21 +1,25 @@
 "use client";
 /**
  * LabShell.tsx
- * "use client" justified: layout state and child client components require
- * a client boundary.
+ * "use client" justified: layout state (activeViewport toggle) and child
+ * client components require a client boundary.
  *
  * Layout:
- *   - Top bar: lab title
- *   - Below: left = control panel, right = dual preview panes side-by-side
- *     (Desktop at 1280px + Mobile at 390px always both visible)
- *   - Each iframe independently resolves CSS vars via its own breakpoint:
- *     Desktop iframe (1280px wide) resolves --type-*-size-d vars;
- *     Mobile iframe (390px wide) resolves --type-*-size-m vars.
- *   - ControlPanel writes both -d and -m vars; iframes pick the right one.
+ *   - Top bar: lab title, Mobile/Desktop toggle, Reset, Copy CSS
+ *   - Below: left = control panel, right = single preview pane
+ *   - Toggle switches the visible PreviewPane between mobile (390px) and
+ *     desktop (1280px). Only one iframe is mounted at a time.
+ *   - The CSS variable cascade (-d and -m vars + media-query resolver) stays
+ *     exactly as built. Both var families are always written by ControlPanel;
+ *     the rendered iframe width determines which resolves.
  */
 
+import { useState } from "react";
 import { ControlPanel } from "@/components/ControlPanel";
 import { PreviewPane }  from "@/components/PreviewPane";
+import { buildBaseline, loadFromStorage, toCssBlock } from "@/lib/type-roles";
+
+type Viewport = "mobile" | "desktop";
 
 const SHELL_STYLES = `
   .lab-shell {
@@ -45,14 +49,70 @@ const SHELL_STYLES = `
     text-transform: uppercase;
     flex-shrink: 0;
   }
-  .lab-topbar__hint {
+
+  /* Toggle group */
+  .lab-toggle {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+  .lab-toggle__btn {
+    padding: 4px 12px;
     font-size: 11px;
-    color: rgba(255,255,255,0.35);
-    letter-spacing: 0.02em;
-    margin-left: 8px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    font-family: system-ui, sans-serif;
+    transition: background 120ms, color 120ms;
+  }
+  .lab-toggle__btn--active {
+    background: rgba(254,214,7,0.15);
+    color: #FED607;
+  }
+  .lab-toggle__btn:not(.lab-toggle__btn--active):hover {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
   }
 
-  /* ---- Body: panel + dual preview side by side ---- */
+  /* Top-bar action buttons (Reset, Copy CSS) */
+  .lab-topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .lab-topbar__action {
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: system-ui, sans-serif;
+    white-space: nowrap;
+    transition: border-color 120ms, background 120ms, color 120ms;
+  }
+  .lab-topbar__action:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .lab-topbar__action--copied {
+    border-color: rgba(22,197,94,0.4);
+    background: rgba(22,197,94,0.15);
+    color: #16c55e;
+  }
+
+  /* ---- Body: panel + single preview ---- */
   .lab-body {
     display: flex;
     flex: 1 1 auto;
@@ -67,37 +127,17 @@ const SHELL_STYLES = `
     overflow-y: auto;
     padding: 16px;
   }
-
-  /* Dual preview: Desktop + Mobile panes side by side */
-  .lab-body__previews {
+  .lab-body__preview {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     display: flex;
-    flex-direction: row;
-    gap: 1px;
-    background: rgba(255,255,255,0.05);
-  }
-  .lab-preview-desktop {
-    flex: 1 1 60%;
-    min-width: 0;
-    overflow: hidden;
-    display: flex;
     flex-direction: column;
     background: #060a14;
-  }
-  .lab-preview-mobile {
-    flex: 0 0 420px;
-    min-width: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background: #060a14;
-    border-left: 1px solid rgba(255,255,255,0.07);
   }
 
   /* On narrow browsers: stack vertically */
-  @media (max-width: 1100px) {
+  @media (max-width: 900px) {
     .lab-body { flex-direction: column; }
     .lab-body__panel {
       width: 100%;
@@ -107,17 +147,32 @@ const SHELL_STYLES = `
       overflow-y: visible;
       max-height: 50vh;
     }
-    .lab-body__previews {
+    .lab-body__preview {
       flex: 1 1 auto;
       min-height: 300px;
-    }
-    .lab-preview-mobile {
-      flex: 0 0 240px;
     }
   }
 `;
 
 export function LabShell() {
+  const [viewport, setViewport] = useState<Viewport>("desktop");
+  const [copied, setCopied] = useState(false);
+
+  // Reset: reads current values from ControlPanel via the applyToRoot path.
+  // ControlPanel owns the state; we trigger a reset by dispatching a custom
+  // event that ControlPanel listens for.
+  function handleReset() {
+    window.dispatchEvent(new CustomEvent("lab:reset"));
+  }
+
+  async function handleCopyCSS() {
+    const stored = loadFromStorage();
+    const css = toCssBlock(stored ?? buildBaseline());
+    await navigator.clipboard.writeText(css);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <div className="lab-shell">
       <style>{SHELL_STYLES}</style>
@@ -125,21 +180,53 @@ export function LabShell() {
       {/* Top bar */}
       <div className="lab-topbar">
         <span className="lab-topbar__title">appeX Type Lab</span>
-        <span className="lab-topbar__hint">Desktop and Mobile sizes are independent per role</span>
+
+        {/* Mobile / Desktop toggle */}
+        <div className="lab-toggle" role="group" aria-label="Viewport">
+          <button
+            type="button"
+            className={`lab-toggle__btn${viewport === "mobile" ? " lab-toggle__btn--active" : ""}`}
+            onClick={() => setViewport("mobile")}
+            aria-pressed={viewport === "mobile"}
+          >
+            Mobile
+          </button>
+          <button
+            type="button"
+            className={`lab-toggle__btn${viewport === "desktop" ? " lab-toggle__btn--active" : ""}`}
+            onClick={() => setViewport("desktop")}
+            aria-pressed={viewport === "desktop"}
+          >
+            Desktop
+          </button>
+        </div>
+
+        {/* Reset + Copy CSS */}
+        <div className="lab-topbar__actions">
+          <button
+            type="button"
+            className="lab-topbar__action"
+            onClick={handleReset}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            className={`lab-topbar__action${copied ? " lab-topbar__action--copied" : ""}`}
+            onClick={handleCopyCSS}
+          >
+            {copied ? "Copied!" : "Copy CSS"}
+          </button>
+        </div>
       </div>
 
-      {/* Panel + Dual Preview */}
+      {/* Panel + Single Preview */}
       <div className="lab-body">
         <div className="lab-body__panel">
           <ControlPanel />
         </div>
-        <div className="lab-body__previews">
-          <div className="lab-preview-desktop">
-            <PreviewPane viewport="desktop" />
-          </div>
-          <div className="lab-preview-mobile">
-            <PreviewPane viewport="mobile" />
-          </div>
+        <div className="lab-body__preview">
+          <PreviewPane viewport={viewport} />
         </div>
       </div>
     </div>

@@ -17,7 +17,6 @@ import {
   buildBaseline,
   loadFromStorage,
   saveToStorage,
-  toCssBlock,
   applyToRoot,
   type RoleValues,
 } from "@/lib/type-roles";
@@ -155,7 +154,6 @@ function sliderRange(role: typeof TYPE_ROLES[number]): { min: number; max: numbe
 export function ControlPanel() {
   const baseline = buildBaseline();
   const [values, setValues] = useState<RoleValues>(baseline);
-  const [copied, setCopied] = useState(false);
   const initRef = useRef(false);
 
   // On mount: restore from localStorage (migrates old single-size shape)
@@ -170,6 +168,18 @@ export function ControlPanel() {
       applyToRoot(baseline);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listen for the top-bar Reset button (LabShell dispatches "lab:reset")
+  useEffect(() => {
+    function onReset() {
+      const fresh = buildBaseline();
+      setValues(fresh);
+      applyToRoot(fresh);
+      saveToStorage(fresh);
+    }
+    window.addEventListener("lab:reset", onReset);
+    return () => window.removeEventListener("lab:reset", onReset);
   }, []);
 
   function updateDesktopSize(roleId: string, size: number) {
@@ -197,20 +207,6 @@ export function ControlPanel() {
       document.documentElement.style.setProperty(`--color-${roleId}`, color);
       return next;
     });
-  }
-
-  function handleReset() {
-    const fresh = buildBaseline();
-    setValues(fresh);
-    applyToRoot(fresh);
-    saveToStorage(fresh);
-  }
-
-  async function handleCopyCSS() {
-    const css = toCssBlock(values);
-    await navigator.clipboard.writeText(css);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -309,40 +305,6 @@ export function ControlPanel() {
         );
       })}
 
-      <div style={{ display: "flex", gap: "8px", paddingTop: "12px" }}>
-        <button
-          type="button"
-          onClick={handleReset}
-          style={{
-            padding: "6px 14px",
-            borderRadius: "4px",
-            border: "1px solid rgba(255,255,255,0.12)",
-            background: "transparent",
-            color: "rgba(255,255,255,0.7)",
-            fontSize: "12px",
-            cursor: "pointer",
-            fontFamily: "system-ui, sans-serif",
-          }}
-        >
-          Reset to Baseline
-        </button>
-        <button
-          type="button"
-          onClick={handleCopyCSS}
-          style={{
-            padding: "6px 14px",
-            borderRadius: "4px",
-            border: copied ? "1px solid rgba(22,197,94,0.4)" : "1px solid rgba(255,255,255,0.12)",
-            background: copied ? "rgba(22,197,94,0.15)" : "transparent",
-            color: copied ? "#16c55e" : "rgba(255,255,255,0.7)",
-            fontSize: "12px",
-            cursor: "pointer",
-            fontFamily: "system-ui, sans-serif",
-          }}
-        >
-          {copied ? "Copied!" : "Copy CSS"}
-        </button>
-      </div>
     </div>
   );
 }

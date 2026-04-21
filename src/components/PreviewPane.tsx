@@ -7,8 +7,15 @@
  * One iframe only. Viewport prop (mobile | desktop) controls the iframe
  * width: 390px for Mobile, 1280px for Desktop. No scale transform ever --
  * the iframe renders at its native pixel dimensions so font sizes are TRUE
- * to the slider values. The wrapper scrolls (overflow: auto) when the
- * browser window is narrower than the iframe's native width.
+ * to the slider values.
+ *
+ * Scroll design (single scrollbar):
+ *   - Outer wrapper: overflow-x auto (horizontal scroll when browser is
+ *     narrower than the iframe), overflow-y hidden -- the iframe owns
+ *     vertical scroll entirely.
+ *   - Iframe: height 100% of the wrapper (fills the pane), no minHeight
+ *     override that would fight the wrapper's height and create a second
+ *     scrollbar. The iframe document scrolls vertically on its own.
  *
  * CSS var bridge: MutationObserver watches document.documentElement.style
  * for changes set by ControlPanel via setProperty. On change it posts
@@ -96,25 +103,33 @@ export function PreviewPane({ viewport }: PreviewPaneProps) {
       </div>
 
       {/*
-        Iframe wrapper -- overflow: auto so the pane scrolls when the browser
-        window is narrower than the iframe's native width. No scale transform.
-        The iframe renders at its true pixel dimensions (390 or 1280) always.
+        Iframe wrapper:
+          - overflow-x: auto  -- horizontal scroll only when the browser is
+            narrower than the iframe's native width (390 or 1280px)
+          - overflow-y: hidden -- the iframe owns vertical scroll; this
+            wrapper must never create a second vertical scrollbar
+        The iframe's height fills this wrapper (100%). Its internal document
+        scrolls vertically as a normal webpage. No minHeight override needed:
+        the iframe document's own content height drives its internal scroll.
       */}
       <div
-        style={{ flex: "1 1 auto", overflow: "auto" }}
+        style={{
+          flex:       "1 1 auto",
+          overflowX:  "auto",
+          overflowY:  "hidden",
+          minHeight:  0,
+        }}
       >
         <iframe
           ref={iframeRef}
           src="/preview"
           width={targetWidth}
           style={{
-            border:   "none",
-            display:  "block",
-            height:   "100%",
-            minHeight: "100vh",
+            border:  "none",
+            display: "block",
+            height:  "100%",
           }}
           title="Site preview"
-          scrolling="yes"
         />
       </div>
     </div>
